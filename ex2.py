@@ -54,7 +54,7 @@ def create_hist(matches, img1_kpts, img2_kpts):
     plt.ylabel('Number of matches')
     plt.xlabel('Deviation from rectified stereo pattern')
 
-    fig.savefig("VAN_ex/histogram.png")
+    fig.savefig("Results/histogram.png")
     plt.close(fig)
 
 
@@ -149,7 +149,7 @@ def draw_matches_with_rectified_stereo_pattern_rej(img1, img2, img1_inliers, img
     plt.scatter(img2_inliers[:, 0], img2_inliers[:, 1], s=1, color=INLIER_COLOR)
     plt.scatter(img2_outliers[:, 0], img2_outliers[:, 1], s=1, color=OUTLIER_COLOR)
 
-    fig.savefig("VAN_ex/out-inliers.png")
+    fig.savefig("Results/out-inliers.png")
     plt.close(fig)
 
 
@@ -217,7 +217,7 @@ def draw_triangulations(p3d_pts, cv_p3d_pts):
     ax.set_ylim3d(-20, 20)
     ax.set_zlim3d(-100, 200)
 
-    fig.savefig(f"VAN_ex/triangulations plot.png")
+    fig.savefig(f"Results/triangulations plot.png")
     plt.close(fig)
 
 
@@ -264,7 +264,7 @@ def triangulation_on_sequence_images():
     ax.set_zlim3d(-20, 0)
     ax.view_init(30, 70)
 
-    fig.savefig(f"VAN_ex/seqImgPlot.png")
+    fig.savefig(f"Results/seqImgPlot.png")
     plt.close(fig)
 
 

@@ -8,8 +8,8 @@ import pickle
 
 LOADED_DB_PATH = r'DataBaseDirectory/db_akaze_bf.pickle'
 TRACK_NAME = "TRACK"
-DB_TRACK_PATH = r'VAN_ex/Track frames_in_window.csv'
-DB_FRAME_PATH = r'VAN_ex/Frame tracks.csv'
+DB_TRACK_PATH = r'Results/Track frames_in_window.csv'
+DB_FRAME_PATH = r'Results/Frame tracks.csv'
 
 
 def save(path, db):

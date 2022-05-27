@@ -563,7 +563,7 @@ def plot_3d_pts_cloud(pts1, pts2):
     ax.set_ylim3d(-10, 10)
     ax.set_zlim3d(-100, 100)
 
-    fig.savefig(f"VAN_ex/2 pts cloud.png")
+    fig.savefig(f"Results/2 pts cloud.png")
     plt.close(fig)
 
 
@@ -586,7 +586,7 @@ def draw_relative_3d_pos(left0_pos, right0_pos, left1_pos, right1_pos):
     ax.set_ylim3d(-3, 3)
     ax.set_zlim3d(-3, 3)
 
-    fig.savefig(f"VAN_ex/Relative 3d camera positions.png")
+    fig.savefig(f"Results/Relative 3d camera positions.png")
     plt.close(fig)
 
 
@@ -608,7 +608,7 @@ def draw_relative_2d_pos(left0_pos, right0_pos, left1_pos, right1_pos):
     ax.set_xlim(-3, 3)
     ax.set_ylim(-3, 3)
 
-    fig.savefig(f"VAN_ex/Relative 2d camera positions.png")
+    fig.savefig(f"Results/Relative 2d camera positions.png")
     plt.close(fig)
 
 
@@ -636,7 +636,7 @@ def plot_supporters(left0, left1, left0_matches_coor, left1_matches_coor, suppor
     plt.scatter(left0_matches_coor[supporters_idx][:, 0],
                 left0_matches_coor[supporters_idx][:, 1], s=3, color=INLIER_COLOR)
 
-    fig.savefig("VAN_ex/Left0 Left1 supporters.png")
+    fig.savefig("Results/Left0 Left1 supporters.png")
     plt.close(fig)
 
 
@@ -650,7 +650,7 @@ def draw_left_cam_3d_trajectory(left_cameras_pos):
     ax.set_title("Left cameras 3d trajectory")
     ax.scatter3D(left_cameras_pos[:, 0], left_cameras_pos[:, 1], left_cameras_pos[:, 2], s=1, c='red')
 
-    fig.savefig("VAN_ex/Left cameras 3d trajectory.png")
+    fig.savefig("Results/Left cameras 3d trajectory.png")
     plt.close(fig)
 
 
@@ -664,7 +664,7 @@ def draw_left_cam_2d_trajectory(left_cameras_pos):
     ax.set_title(f"Left cameras 2d trajectory for {len(left_cameras_pos)} frames.")
     ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
 
-    fig.savefig(f"VAN_ex/Left cameras 2d 500 trajectory.png")
+    fig.savefig(f"Results/Left cameras 2d 500 trajectory.png")
     plt.close(fig)
 
 
@@ -679,7 +679,7 @@ def draw_left_cam_2d_trajectory_addition_params(left_cameras_pos, alg_name, matc
                  f"{alg_name} | {match_method} | Time: {time}")
     ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
 
-    fig.savefig(f"VAN_ex/Left cameras 2d trajectory {alg_name} {match_method}.png")
+    fig.savefig(f"Results/Left cameras 2d trajectory {alg_name} {match_method}.png")
     plt.close(fig)
 
 
@@ -694,7 +694,7 @@ def compare_left_cam_3d_trajectory_to_ground_truth(left_cameras_pos, left_camera
     ax.scatter3D(left_cameras_pos[:, 0], left_cameras_pos[:, 1], left_cameras_pos[:, 2], s=1, c='red')
     ax.scatter3D(left_cameras_pos_gt[:, 0], left_cameras_pos_gt[:, 1], left_cameras_pos_gt[:, 2], s=1, c='cyan')
 
-    fig.savefig("VAN_ex/Compare Left cameras 3d trajectory.png")
+    fig.savefig("Results/Compare Left cameras 3d trajectory.png")
     plt.close(fig)
 
 
@@ -711,7 +711,7 @@ def compare_left_cam_2d_trajectory_to_ground_truth_params(left_cameras_pos, left
     ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
     ax.scatter(left_cameras_pos_gt[:, 0], left_cameras_pos_gt[:, 2], s=1, c='cyan')
 
-    fig.savefig(f"VAN_ex/Compare Left cameras 2d trajectory {alg_name} {match_method}.png")
+    fig.savefig(f"Results/Compare Left cameras 2d trajectory {alg_name} {match_method}.png")
     plt.close(fig)
 
 
@@ -726,7 +726,7 @@ def compare_left_cam_2d_trajectory_to_ground_truth(left_cameras_pos, left_camera
     ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
     ax.scatter(left_cameras_pos_gt[:, 0], left_cameras_pos_gt[:, 2], s=1, c='cyan')
 
-    fig.savefig("VAN_ex/Compare Left cameras 2d trajectory.png")
+    fig.savefig("Results/Compare Left cameras 2d trajectory.png")
     plt.close(fig)
 
 
@@ -780,7 +780,7 @@ def plot_supporters_compare_to_ransac(left0, left1,
     plt.scatter(left1_matches_coor[ransac_supporters_idx][:, 0],
                 left1_matches_coor[ransac_supporters_idx][:, 1], s=1, color=INLIER_COLOR)
 
-    fig.savefig("VAN_ex/Left0 Left1 supporters ransac compare.png")
+    fig.savefig("Results/Left0 Left1 supporters ransac compare.png")
     plt.close(fig)
 
 

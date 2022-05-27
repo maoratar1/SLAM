@@ -13,9 +13,9 @@ import pandas as pd
 TRACK_NAME = "TRACK"
 FRAME_NAME = "FRAME"
 
-DB_TRACK_PATH = r'VAN_ex/Track frames_in_window.csv'
-DB_FRAME_PATH = r'VAN_ex/Frame tracks.csv'
-STAT_TRACK_FRAME_PATH = r'VAN_ex/Track and frames stat.csv'
+DB_TRACK_PATH = r'Results/Track frames_in_window.csv'
+DB_FRAME_PATH = r'Results/Frame tracks.csv'
+STAT_TRACK_FRAME_PATH = r'Results/Track and frames stat.csv'
 
 
 def find_features_in_consecutive_frames_whole_movie(first_left_ex_cam_mat=utills.M1):
@@ -265,7 +265,7 @@ def plot_track(track):
 
         i += 1
 
-    fig.savefig("VAN_ex/track.png")
+    fig.savefig("Results/track.png")
     plt.close(fig)
 
 
@@ -335,7 +335,7 @@ def plot_connectivity_graph(vals_per_frame, frames_num):
     plt.ylabel('Outgoing tracks')
     plt.title(f'Connectivity for {frames_num} frames_in_window')
 
-    plt.savefig("VAN_ex/Connectivity.png")
+    plt.savefig("Results/Connectivity.png")
 
 
 def mission5(db):
@@ -359,7 +359,7 @@ def plot_inliers_percentage_graph(inliers_percentage):
     plt.ylabel('Percentage')
     plt.xlabel('Frame')
 
-    fig.savefig("VAN_ex/Inliers percentage per frame graph.png")
+    fig.savefig("Results/Inliers percentage per frame graph.png")
     plt.close(fig)
 
 
@@ -388,7 +388,7 @@ def plot_histogram(track_lengths):
     plt.ylabel('Track #')
     plt.xlabel('Track lengths')
 
-    fig.savefig("VAN_ex/Track length histogram.png")
+    fig.savefig("Results/Track length histogram.png")
     plt.close(fig)
 
 
@@ -452,7 +452,7 @@ def plot_reprojection_error_graph(total_proj_dist, frame_idx_triangulate):
     plt.ylabel('Error')
     plt.xlabel('Frames')
 
-    fig.savefig(f"VAN_ex/Re projection error graph for {frame_title} frame.png")
+    fig.savefig(f"Results/Re projection error graph for {frame_title} frame.png")
     plt.close(fig)
 
 
@@ -508,7 +508,7 @@ def plot_frame1_ending_tracks_features_and_frame2_features(left1, left2, frame1_
     axes[1].imshow(left2, cmap='gray')
     axes[1].scatter(frame2_features_coor[:, 0], frame2_features_coor[:, 1], s=1, color='red')
 
-    fig.savefig("VAN_ex/Left1 Left2 ending tracks checking.png")
+    fig.savefig("Results/Left1 Left2 ending tracks checking.png")
     plt.close(fig)
 
 

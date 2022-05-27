@@ -12,7 +12,7 @@ def plot_arr_values_as_function_of_its_indexes(values, title, file_path):
     ax.set_title(f"{title}.")
     ax.scatter(range(len(values)), values, s=1, c='red')
 
-    fig.savefig(f"VAN_ex/{file_path}.png")
+    fig.savefig(f"Results/{file_path}.png")
     plt.close(fig)
 
 # Ex2
@@ -80,7 +80,7 @@ def plot_tracking(left0, right0, left1, right1,
         ax3.add_artist(left0_left1_line)
         ax4.add_artist(left1_right1_line)
 
-    fig.savefig("VAN_ex/tracking.png")
+    fig.savefig("Results/tracking.png")
     plt.close(fig)
 
 
@@ -111,7 +111,7 @@ def plot_triangulations(p3d_pts, cv_p3d_pts):
     ax.set_ylim3d(-20, 20)
     ax.set_zlim3d(-100, 200)
 
-    fig.savefig(f"VAN_ex/triangulations plot.png")
+    fig.savefig(f"Results/triangulations plot.png")
     plt.close(fig)
 
 
@@ -126,7 +126,7 @@ def plot_left_cam_2d_trajectory(left_cameras_pos):
     ax.set_title(f"Left cameras 2d trajectory for {len(left_cameras_pos)} frames.")
     ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
 
-    fig.savefig(f"VAN_ex/Left cameras 2d trajectory.png")
+    fig.savefig(f"Results/Left cameras 2d trajectory.png")
     plt.close(fig)
 
 
@@ -141,7 +141,7 @@ def compare_left_cam_2d_trajectory_to_ground_truth(left_cameras_pos, left_camera
     ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
     ax.scatter(left_cameras_pos_gt[:, 0], left_cameras_pos_gt[:, 2], s=1, c='cyan')
 
-    fig.savefig("VAN_ex/Compare Left cameras 2d trajectory.png")
+    fig.savefig("Results/Compare Left cameras 2d trajectory.png")
     plt.close(fig)
 
 
@@ -158,7 +158,7 @@ def compare_left_cam_2d_trajectory_to_ground_truth_params(left_cameras_pos, left
     ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
     ax.scatter(left_cameras_pos_gt[:, 0], left_cameras_pos_gt[:, 2], s=1, c='cyan')
 
-    fig.savefig(f"VAN_ex/Compare Left cameras 2d trajectory {alg_name} {match_method}.png")
+    fig.savefig(f"Results/Compare Left cameras 2d trajectory {alg_name} {match_method}.png")
     plt.close(fig)
 
 
@@ -176,7 +176,7 @@ def plot_re_projection_error_graph(total_proj_dist, frame_idx_triangulate, title
     plt.ylabel('Error')
     plt.xlabel('Frames')
 
-    fig.savefig(f"VAN_ex/{title} Re projection error graph for {frame_title} frame.png")
+    fig.savefig(f"Results/{title} Re projection error graph for {frame_title} frame.png")
     plt.close(fig)
 
 
@@ -192,7 +192,7 @@ def plot_cam_and_landmarks_2d_trajectory(cameras, landmarks):
     ax.scatter(cameras[:, 0], cameras[:, 2], s=1, c='red')
     ax.scatter(landmarks[:, 0], landmarks[:, 2], s=1, c='blue')
 
-    fig.savefig(f"VAN_ex/Left cameras 2d trajectory.png")
+    fig.savefig(f"Results/Left cameras 2d trajectory.png")
     plt.close(fig)
 
 
@@ -226,7 +226,7 @@ def plot_left_cam_2d_trajectory_and_3d_points_compared_to_ground_truth(cameras=N
     # ax.set_xlim(-5, 5)
     # ax.set_ylim(-5, 50)
 
-    fig.savefig(f"VAN_ex/{title} Left cameras and landmarks 2d trajectory.png")
+    fig.savefig(f"Results/{title} Left cameras and landmarks 2d trajectory.png")
     plt.close(fig)
 
 
