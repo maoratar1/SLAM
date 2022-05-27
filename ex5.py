@@ -84,36 +84,6 @@ def mission3(method):
                                                           file_path="Euclidean distance error")
 
 
-def mission3_2():
-    # Solve BA
-    bundle_adjustment = BundleAdjustment()
-    # cameras, landmarks = bundle_adjustment.solve(method=method)
-
-    # Plot 2d trajectory of cameras and landmarks compared to ground truth
-    key_frames = bundle_adjustment.get_key_frames()
-    # ground_truth = np.array(utills.get_ground_truth_transformations())[key_frames]
-    # cameras_gt_3d = utills.left_cameras_trajectory(ground_truth)
-    # cameras_3d = utills.gtsam_left_cameras_trajectory(cameras)
-
-    initial_estimate = Data.DB.initial_estimate_poses()[key_frames]
-
-    # utils.plot.plot_left_cam_2d_trajectory_and_3d_points_compared_to_ground_truth(cameras=cameras_3d,
-    #                                                                               landmarks=landmarks,
-    #                                                                               initial_estimate_poses=initial_estimate,
-    #                                                                               cameras_gt=cameras_gt_3d)
-
-    utils.plot.plot_left_cam_2d_trajectory_and_3d_points_compared_to_ground_truth(cameras=None,
-                                                                                  landmarks=None,
-                                                                                  initial_estimate_poses=initial_estimate,
-                                                                                  cameras_gt=None)
-
-    # # Present keyframe localization error in meters from ground truth
-    # euclidean_dist = utills.euclidean_dist(cameras_3d, cameras_gt_3d, dim="3d")
-    # utils.plot.plot_arr_values_as_function_of_its_indexes(euclidean_dist,
-    #                                                       title=f"Euclidean distance error for {len(euclidean_dist)} cameras",
-    #                                                       file_path="Euclidean distance error")
-
-
 def triangulate_from_specific_frame_and_project_on_track(track, frames_in_track, frame_idx_triangulate=-1):
     """
     At this mission we:
