@@ -219,12 +219,9 @@ def plot_left_cam_2d_trajectory_and_3d_points_compared_to_ground_truth(cameras=N
     if initial_estimate_poses is not None:
         ax.scatter(initial_estimate_poses[:, 0], initial_estimate_poses[:, 2], s=1, c='pink', label="Initial estimate")
 
-    ax.legend(loc="upper right")
-    ax.set_xlim(-200, 350)
-    ax.set_ylim(-100, 500)
-
-    # ax.set_xlim(-5, 5)
-    # ax.set_ylim(-5, 50)
+    ax.legend(loc="upper left")
+    ax.set_xlim(-250, 350)
+    ax.set_ylim(-100, 550)
 
     fig.savefig(f"Results/{title} Left cameras and landmarks 2d trajectory.png")
     plt.close(fig)

@@ -8,6 +8,7 @@ LOADED_KITTI_DATA = r'DataDirectory/KITTI_DATA.pickle'
 LEFT_CAM_TRANS_PATH = r'/Users/maoratar/opt/anaconda3/envs/Van_Ex1/VAN_ex/dataset/poses/00.txt'
 IDX = 000000
 MOVIE_LEN = 3450
+KERNEL_SIZE = 10
 
 
 def save(path, db):
@@ -39,7 +40,7 @@ class KittiData:
     """
     def __init__(self):
         self.__images = []
-        self.load_images(MOVIE_LEN, kernel_size=10)
+        self.load_images(MOVIE_LEN, kernel_size=KERNEL_SIZE)
 
         self.__k, self.__m1, self.__m2 = self.read_cameras()
 
@@ -88,7 +89,8 @@ class KittiData:
         Reads First frame cameras intrinsic and extrinsic matrices
         :return:
         """
-        print("\tLoading cameras matrices:\n\tK: Calibration camera\n\tM1: left camera extrinsic matrix\n\tM2: Right "
+        print("\t\tLoading cameras matrices:\n\t\tK: Calibration camera\n\t\tM1: left camera extrinsic matrix\n"
+              "\t\tM2: Right "
               "camera extrinsic matrix relative to the left camera")
 
         with open(DATA_PATH + 'calib.txt') as f:
@@ -108,7 +110,7 @@ class KittiData:
         Reads the ground truth transformations
         :return: array of transformation
         """
-        print("\tLoading ground truth cameras extrinsic matrices...")
+        print("\t\tLoading ground truth cameras extrinsic matrices...")
         with open(left_cam_trans_path) as f:
             lines = f.readlines()
 

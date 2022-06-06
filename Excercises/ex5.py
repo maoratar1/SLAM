@@ -6,6 +6,7 @@ from utils import utills
 from utils import plot
 import utils
 from BundleAdjustmentDirectory.BundleAdjustment import BundleAdjustment
+from BundleAdjustmentDirectory import BundleAdjustment as BA
 
 import gtsam
 from gtsam import symbol
@@ -61,7 +62,10 @@ def mission2():
 def mission3(method):
     # Solve BA
     bundle_adjustment = BundleAdjustment()
-    cameras, landmarks = bundle_adjustment.solve(method=method)
+    bundle_adjustment.solve(method=method)
+    gtsam_cameras_rel_to_bundle = bundle_adjustment.get_gtsam_cameras_rel_to_bundle()
+    all_landmarks_rel_to_bundle = bundle_adjustment.get_all_landmarks_rel_to_bundle()
+    cameras, landmarks = BA.convert_rel_cams_and_landmarks_to_global(gtsam_cameras_rel_to_bundle,  all_landmarks_rel_to_bundle)
 
     # Plot 2d trajectory of cameras and landmarks compared to ground truth
     key_frames = bundle_adjustment.get_key_frames()
@@ -75,7 +79,6 @@ def mission3(method):
                                                                                   landmarks=landmarks,
                                                                                   initial_estimate_poses=initial_estimate,
                                                                                   cameras_gt=cameras_gt_3d)
-
 
     # Present keyframe localization error in meters from ground truth
     euclidean_dist = utills.euclidean_dist(cameras_3d, cameras_gt_3d, dim="3d")

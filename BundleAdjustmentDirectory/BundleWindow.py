@@ -14,20 +14,20 @@ class BundleWindow:
 
     BUNDLE_WINDOW_LST = []
 
-    def __init__(self, first_key_frame, second_key_frame, frames_in_window):  # Todo: add Rotation
+    def __init__(self, first_key_frame, second_key_frame, frames_in_window):  # Todo: Delete the frame in windows and add instead calling to Data.DB.get_frames()
         self.__first_key_frame = first_key_frame
         self.__second_key_frame = second_key_frame
         self.__bundle_len = 1 + second_key_frame - first_key_frame
         self.__frames_in_window = frames_in_window
-        self.__computed_tracks = set()
+        self.__computed_tracks = set()  # Todo: I had deleted this but befort it worked - check it still works
 
-        self.__optimizer = None
+        self.optimizer = None
         self.__initial_estimate = gtsam.Values()
         self.__optimized_values = None
         self.__camera_sym = set()  # {CAMERA_SYM + frame index : gtsam symbol} for example {"q1": symbol(q1, place)}
         self.__landmark_sym = set()
 
-        self.__graph = gtsam.NonlinearFactorGraph()
+        self.graph = gtsam.NonlinearFactorGraph()
 
     def create_factor_graph(self):
         """
@@ -65,25 +65,23 @@ class BundleWindow:
             # Initialize constraints for first pose
             if i == 0:
                 # sigmas array: first 3 for angles second 3 for location
-                sigmas = np.array([(3 * np.pi / 180)**2] * 3 + [1.0, 0.01, 1.0])
+                sigmas = np.array([(3 * np.pi / 180)**2] * 3 + [1e-2, 1e-3, 1e-1])
                 pose_uncertainty = gtsam.noiseModel.Diagonal.Sigmas(sigmas=sigmas)  # todo: check choice of diagonal
                 # Initial pose
                 factor = gtsam.PriorFactorPose3(left_pose_sym, gtsam_left_cam_pose, pose_uncertainty)
-                self.__graph.add(factor)
+                self.graph.add(factor)
 
         # For each track create measurements factors
         tracks_in_frame = Data.DB.get_tracks_at_frame(first_frame.get_id())
 
         for track in tracks_in_frame:
             # Check that this track has bot been computed yet and that it's length is satisfied
-            if track.get_id() in self.__computed_tracks or track.get_last_frame_ind() < self.__second_key_frame:
+            if track.get_last_frame_ind() < self.__second_key_frame:
                 continue
 
             # Create a gtsam object for the last frame for making the projection at the function "add_factors"
             gtsam_last_cam = gtsam.StereoCamera(gtsam_left_cam_pose, gtsam_calib_mat)
             self.add_factors(track, self.__first_key_frame, self.__second_key_frame, gtsam_last_cam, gtsam_calib_mat)  # Todo: as before
-
-            self.__computed_tracks.add(track.get_id())
 
     def create_factor_graph_opt2_all_tracks(self):
         # Compute all tracks
@@ -125,7 +123,7 @@ class BundleWindow:
                 pose_uncertainty = gtsam.noiseModel.Diagonal.Sigmas(sigmas=sigmas)  # todo: check choice of diagonal
                 # Initial pose
                 factor = gtsam.PriorFactorPose3(left_pose_sym, gtsam_left_cam_pose, pose_uncertainty)
-                self.__graph.add(factor)
+                self.graph.add(factor)
 
         tracks_ids_in_frame_lst = list(tracks_ids_in_frame)
         tracks_in_frame = Data.DB.get_tracks()[tracks_ids_in_frame_lst]
@@ -167,12 +165,11 @@ class BundleWindow:
             # Initialize constraints for first pose
             if i == 0:
                 # sigmas array: first 3 for angles second 3 for location
-                # sigmas = np.array([10 ** -3, 10 ** -3, 10 ** -3, 10 ** -2, 10 ** -2, 10 ** -2])
-                sigmas = np.array([(3 * np.pi / 180) ** 2] * 3 + [1.0, 0.3, 1.0])
+                sigmas = np.array([(1 * np.pi / 180) ** 2] * 3 + [1.0, 0.3, 1.0])
                 pose_uncertainty = gtsam.noiseModel.Diagonal.Sigmas(sigmas=sigmas)  # todo: check choice of diagonal
                 # Initial pose
                 factor = gtsam.PriorFactorPose3(left_pose_sym, gtsam.Pose3(), pose_uncertainty)
-                self.__graph.add(factor)
+                self.graph.add(factor)
 
             # Convert this transformation to: cur cam -> first cam
             cur_cam_pose = utills.convert_ex_cam_to_cam_to_world(cams_rel_to_bundle_first_cam[i])
@@ -185,15 +182,13 @@ class BundleWindow:
 
         for track in tracks_in_frame:
             # Check that this track has bot been computed yet and that it's length is satisfied
-            if track.get_id() in self.__computed_tracks or track.get_last_frame_ind() < self.__second_key_frame:
+            if track.get_last_frame_ind() < self.__second_key_frame:
                 continue
 
             # Create a gtsam object for the last frame for making the projection at the function "add_factors"
             gtsam_last_cam = gtsam.StereoCamera(gtsam_left_cam_pose, gtsam_calib_mat)
             self.add_factors(track, self.__first_key_frame, self.__second_key_frame, gtsam_last_cam,
                              gtsam_calib_mat)  # Todo: as before
-
-            self.__computed_tracks.add(track.get_id())
 
     def add_factors(self, track, first_frame_ind, last_frame_ind, gtsam_frame_to_triangulate_from, gtsam_calib_mat, frame_idx_triangulate=-1):
         """
@@ -217,6 +212,9 @@ class BundleWindow:
         # Triangulation from last frame
         gtsam_p3d = gtsam_frame_to_triangulate_from.backproject(gtsam_stereo_point2_for_triangulation)
 
+        if gtsam_p3d[2] <= 0 or gtsam_p3d[2] >= 300: ## Todo: check limits
+            return
+
         # Add landmark symbol to "values" dictionary
         p3d_sym = symbol(LAND_MARK_SYM, track.get_id())
         self.__landmark_sym.add(p3d_sym)
@@ -234,14 +232,14 @@ class BundleWindow:
                                                  symbol(CAMERA_SYM, frame.get_id()), p3d_sym, gtsam_calib_mat)
 
             # Add factor to the graph
-            self.__graph.add(factor)
+            self.graph.add(factor)
 
     def optimize(self):
         """
         Apply optimization with Levenberg marquardt algorithm
         """
-        self.__optimizer = gtsam.LevenbergMarquardtOptimizer(self.__graph, self.__initial_estimate)
-        self.__optimized_values = self.__optimizer.optimize()
+        self.optimizer = gtsam.LevenbergMarquardtOptimizer(self.graph, self.__initial_estimate)
+        self.__optimized_values = self.optimizer.optimize()
 
     def update_optimization(self, values):
         """
@@ -256,9 +254,9 @@ class BundleWindow:
         :return:
         """
         if not optimized:
-            error = self.__graph.error(self.__initial_estimate)
+            error = self.graph.error(self.__initial_estimate)
         else:
-            error = self.__graph.error(self.__optimized_values)
+            error = self.graph.error(self.__optimized_values)
 
         return np.log(error)  # Todo: here we returns the reprojection error probably
 
@@ -339,3 +337,16 @@ class BundleWindow:
         Returns first and last key frames
         """
         return self.__first_key_frame, self.__second_key_frame
+
+    def marginals(self):
+        return gtsam.Marginals(self.graph, self.__optimized_values)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["optimizer"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Add optimizer back since it doesn't exist in the pickle
+        self.optimizer = gtsam.LevenbergMarquardtOptimizer(self.graph, self.__initial_estimate)

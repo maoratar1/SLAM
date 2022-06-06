@@ -6,7 +6,7 @@ class Track:
 
     def __init__(self, track_id):
         self.__id = track_id
-        self.__frames_locations = dict()  # {Frame frame_idx: feature} contains the track Feature object in each frame
+        self.__frames_features = dict()  # {Frame frame_idx: feature} contains the track Feature object in each frame
         self.__frames_ids = []
 
     def get_id(self):
@@ -20,20 +20,20 @@ class Track:
         Add a feature to frame with "frame_id" index
         :return:
         """
-        self.__frames_locations[frame_id] = feature
+        self.__frames_features[frame_id] = feature
         bisect.insort(self.__frames_ids, frame_id)
 
     def get_frames_ids(self):
         """
         Returns the frames_in_window indexes
         """
-        return np.array(list(self.__frames_locations.keys())).astype(int)
+        return np.array(list(self.__frames_features.keys())).astype(int)
 
     def get_feature_at_frame(self, frame_id):
         """
         Returns the tracks feature in frame with index frame_id
         """
-        return self.__frames_locations[frame_id]
+        return self.__frames_features[frame_id]
 
     def get_left_locations_in_all_frames(self):
         """
@@ -43,7 +43,7 @@ class Track:
         frame_ids = self.__frames_ids
 
         for frame in frame_ids:
-            feature = self.__frames_locations[frame]
+            feature = self.__frames_features[frame]
             left_locations.append(feature.get_left_coor())
 
         return left_locations
@@ -55,7 +55,7 @@ class Track:
         left_locations = []
 
         for frame_ind in range(first_frame, last_frame + 1):
-            feature = self.__frames_locations[frame_ind]
+            feature = self.__frames_features[frame_ind]
             left_locations.append(feature.get_left_coor())
 
         return left_locations
@@ -68,7 +68,7 @@ class Track:
         frame_ids = self.__frames_ids
 
         for frame in frame_ids:
-            feature = self.__frames_locations[frame]
+            feature = self.__frames_features[frame]
             right_locations.append(feature.get_right_coor())
 
         return right_locations
@@ -80,7 +80,7 @@ class Track:
         right_locations = []
 
         for frame_ind in range(first_frame, last_frame + 1):
-            feature = self.__frames_locations[frame_ind]
+            feature = self.__frames_features[frame_ind]
             right_locations.append(feature.get_right_coor())
 
         return right_locations
@@ -90,13 +90,13 @@ class Track:
         Returns the dictionatry of {frame frame_idx: feature}
         :return:
         """
-        return self.__frames_locations
+        return self.__frames_features
 
     def get_track_len(self):
         """
         Returns the track length
         """
-        return len(self.__frames_locations)
+        return len(self.__frames_features)
 
     def get_last_frame_ind(self):
         return self.__frames_ids[-1]

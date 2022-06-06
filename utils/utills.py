@@ -87,7 +87,7 @@ def knn_matching(metric, img1_dsc, img2_dsc):
 
 
 def matching(img1_dsc, img2_dsc):  # Todo: we left those options for further checking
-    # matches = knn_matching(MATCHES_NORM, img1_dsc, img2_dsc) # Notice does not return np array
+    # matches = knn_matching(MATCHES_NORM, img1_dsc, img2_dsc)  # Notice does not return np array
     # matches = knn_flann_matching(img1_dsc, img2_dsc)
     # matches, _ = significance_test(matches, RATIO)  # Notice does not return np array
     matches = bf_matching(MATCHES_NORM, img1_dsc, img2_dsc, sort=False)
@@ -268,14 +268,13 @@ def compute_trans_between_cur_to_next(left0_kpts, left0_dsc, right0_kpts,
     return best_left1_cam_mat, max_supp_group_idx
 
 
-def read_and_rec_match(frame_num, kernel_size=0):
+def read_and_rec_match(frame_num):
     """
     Reads KITTI from pair idx, Finds matches with rectified test
     :param idx: Frame's index
     :return: key d2_points of the two KITTI and the matches
     """
     # Find matches in frame with rectified test
-    # left_img, right_img = read_images(idx, kernel_size=kernel_size)
     left_img, right_img = KITTI.get_image(frame_num)
     left0_kpts, left0_dsc, right0_kpts, _, pair0_matches = detect_and_match(left_img, right_img)
     pair0_rec_matches_idx, _ = rectified_stereo_pattern_rej(left0_kpts, right0_kpts, pair0_matches)
@@ -291,10 +290,7 @@ def whole_movie(first_left_ex_mat=M1):
 
     # Find matches in pair0 with rectified test
     left0_kpts, left0_dsc, right0_kpts, pair0_matches, pair0_rec_matches_idx = read_and_rec_match(IDX)
-    print("Pair 0")
-    for i in range(1, MOVIE_LEN - 1, 3):
-        if i % 100 == 0:
-            print("Pair ", i)
+    for i in tqdm.tqdm(range(1, MOVIE_LEN)):
         left1_kpts, left1_dsc, right1_kpts, pair1_matches, pair1_rec_matches_idx = read_and_rec_match(IDX + i)
 
         left1_ex_mat = compute_trans_between_cur_to_next(left0_kpts, left0_dsc, right0_kpts,
@@ -665,12 +661,11 @@ def find_features_in_consecutive_frames_whole_movie(first_left_ex_cam_mat=M1):
 
     # Find matches in pair0 with rectified test
     left0_kpts, left0_dsc, right0_kpts, \
-    pair0_matches, pair0_rec_matches_idx = read_and_rec_match(0, kernel_size=10)
+    pair0_matches, pair0_rec_matches_idx = read_and_rec_match(frame_num=0)
 
     inliers_percentage = []
     for i in tqdm.tqdm(range(1, MOVIE_LEN)):
-        left1_kpts, left1_dsc, right1_kpts, pair1_matches, pair1_rec_matches_idx = \
-            read_and_rec_match(i, kernel_size=10)
+        left1_kpts, left1_dsc, right1_kpts, pair1_matches, pair1_rec_matches_idx = read_and_rec_match(frame_num=i)
 
         trans, frame0_features, frame1_features, frame0_inliers_percentage = \
             find_features_in_consecutive_frames(
@@ -750,7 +745,6 @@ def get_feature_obj(matches, img1_kpts, img2_kpts):
         img1_kpt_idx, img2_kpt_idx = match.queryIdx, match.trainIdx
         img1_x, img1_y = img1_kpts[img1_kpt_idx].pt[0], img1_kpts[img1_kpt_idx].pt[1]
         img2_x, img2_y = img2_kpts[img2_kpt_idx].pt[0], img2_kpts[img2_kpt_idx].pt[1]
-        # y = (img1_y + img2_y) / 2
         feature = Feature.Feature(img1_kpt_idx, img2_kpt_idx, img1_x, img2_x, img1_y, img2_y)
         frame_features.append(feature)
 
