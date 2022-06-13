@@ -95,8 +95,8 @@ def relative_camera_pos_4(left0_ex_mat, right0_ex_mat, left1_ex_mat, right1_ex_m
 def compose_transformations(first_ex_mat, second_ex_mat):
     """
     Compute the composition of two extrinsic camera matrices.
-    first_cam : A -> B
-    second_cam : B -> C
+    first_cam_mat : A -> B
+    second_cam_mat : B -> C
     composed mat : A -> C
     """
     # [R2 | t2] @ [ R1 | t1] = [R2 @ R1 | R2 @ t1 + t2]

@@ -1,6 +1,6 @@
 import numpy as np
 from DataDirectory import Data
-import PoseGraph
+from PoseGraphDirectory import PoseGraph
 from utils import plot
 
 import gtsam
@@ -25,7 +25,7 @@ def mission1():
     marginals = first_bundle.marginals()
     result = first_bundle.get_optimized_values()
     plot.plot_trajectory(0, result, marginals=marginals, scale=1, title="Covariance poses for first bundle",
-                         save_file="Results/Poses cov.png")
+                         save_file="Results/Poses rel_covs.png", d2_view=False)
 
     # Apply marginalization and conditioning at the last key frame
     keys = gtsam.KeyVector()
@@ -39,16 +39,16 @@ def mission1():
     relative_pose = first_camera.between(second_camera)
 
     print("Relative covariance between the frame poses:\n", cond_cov_mat, "\n")
-    print("Relative poses of last key frames:\n", relative_pose)
+    print("Relative poses of last key frames_ind:\n", relative_pose)
 
 
 def mission2():
     bundles_lst = Data.BA.get_bundles_lst()
     key_frames = Data.BA.get_key_frames()
 
-    rel_poses_lst, cov_mat_lst = PoseGraph.compute_cov_rel_poses_for_bundles(bundles_lst, PoseGraph.MULTI_PROCESSED, 5)
+    rel_poses_lst, rel_cov_mat_lst = PoseGraph.compute_cov_rel_poses_for_bundles(bundles_lst, PoseGraph.ITERATIVE_METHOD)
 
-    pose_graph = PoseGraph.PoseGraph(key_frames, rel_poses_lst, cov_mat_lst)
+    pose_graph = PoseGraph.PoseGraph(key_frames, rel_poses_lst, rel_cov_mat_lst)
 
     pose_graph.optimize()
 
@@ -63,7 +63,6 @@ def mission2():
     # Plot optimized trajectory without covariance
     gtsam.utils.plot.plot_trajectory(2, optimized_poses, scale=scale, title="Optimized poses",
                                      save_file="Results/Optimized poses.png", d2_view=True)
-    # utils.plot.compare_left_cam_2d_trajectory_to_ground_truth(initial_estimate_poses, optimized_poses)
 
     # Optimized trajectory with covariance
     marginals = pose_graph.marginals()

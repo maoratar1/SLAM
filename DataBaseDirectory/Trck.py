@@ -48,13 +48,13 @@ class Track:
 
         return left_locations
 
-    def get_left_locations_in_specific_frames(self, first_frame, last_frame):
+    def get_left_locations_in_specific_frames(self, frames_ind):
         """
         Returns the locations at all the left frames_in_window
         """
         left_locations = []
 
-        for frame_ind in range(first_frame, last_frame + 1):
+        for frame_ind in frames_ind:
             feature = self.__frames_features[frame_ind]
             left_locations.append(feature.get_left_coor())
 
@@ -73,13 +73,13 @@ class Track:
 
         return right_locations
 
-    def get_right_locations_in_specific_frames(self, first_frame, last_frame):
+    def get_right_locations_in_specific_frames(self, frames_ind):
         """
         Returns the locations at all the right frames_in_window
         """
         right_locations = []
 
-        for frame_ind in range(first_frame, last_frame + 1):
+        for frame_ind in frames_ind:
             feature = self.__frames_features[frame_ind]
             right_locations.append(feature.get_right_coor())
 

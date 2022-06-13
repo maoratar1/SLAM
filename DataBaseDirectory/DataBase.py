@@ -76,6 +76,8 @@ class DataBase:
             frame_i_following_features_obj = arr[1]
             self.set_tracks_and_frames(frame_i_features_obj, frame_i_following_features_obj, i, global_cam_trans)
 
+        self.__frames = np.array(self.__frames)
+
     def set_tracks_and_frames(self, first_frame_features_obj, second_frame_features_obj, first_frame_id, global_trans):
         """
         This function receives pair of Featurs objects list of frames_in_window, frame i and frame i+1
@@ -92,9 +94,16 @@ class DataBase:
         frame = Fr.Frame(second_frame_id, global_trans[second_frame_id])
         self.add_frame(frame)
 
+        self.__last_kpts = self.find_tracks_between_consecutive_frame(first_frame_features_obj,
+                                                                      second_frame_features_obj,
+                                                                      first_frame_id, second_frame_id)
+
+    def find_tracks_between_consecutive_frame(self, first_frame_features_obj, second_frame_features_obj,
+                                              first_frame_id, second_frame_id):
+
         new_dic = {}  # Dictionary of the key d2_points the has tracks at the new frame "second frame"
-                      # We create a new one such that we can remove all the keypoints that has a track at
-                      # the first frame but does not continue to the next frame "second frame"
+        # We create a new one such that we can remove all the keypoints that has a track at
+        # the first frame but does not continue to the next frame "second frame"
 
         for i in range(len(first_frame_features_obj)):
             first_frame_feature = first_frame_features_obj[i]
@@ -140,7 +149,7 @@ class DataBase:
                 frame = self.__frames[second_frame_id]
                 frame.add_track(track_idx)
 
-        self.__last_kpts = new_dic
+        return new_dic
 
     def add_frame(self, frame):
         """
@@ -260,7 +269,7 @@ class DataBase:
         """
         Returns the frames_in_window list
         """
-        return np.array(self.__frames)
+        return self.__frames
 
     def get_inliers_percentage_per_frame(self):
         """
@@ -303,3 +312,78 @@ class DataBase:
             loc.append(frame.get_pose())
 
         return np.array(loc)
+
+
+# === Another option for setting tracks - written for finding tracks in little bundle at ex7
+#     def set_tracks_and_frames(self, first_frame_features_obj, second_frame_features_obj, first_frame_id, global_trans):
+#         """
+#         This function receives pair of Featurs objects list of frames_in_window, frame i and frame i+1
+#         that match in their indexes i.e the i'th index in the first list is a feature that match
+#         to the ith feature in the second array
+#         :param first_frame_features_obj: List of features object of frame i
+#         :param second_frame_features_obj:List of features object of frame i+1
+#         :param first_frame_id: Equals to i.
+#         :return:
+#         """
+#         second_frame_id = first_frame_id + 1
+#
+#         # Creates frame i+1
+#         frame = Fr.Frame(second_frame_id, global_trans[second_frame_id])
+#         self.add_frame(frame)
+#
+#         self.__last_kpts = self.find_tracks_between_consecutive_frame(first_frame_features_obj,
+#                                                                       second_frame_features_obj,
+#                                                                       first_frame_id, second_frame_id)
+#
+#     def find_tracks_between_consecutive_frame(self, first_frame_features_obj, second_frame_features_obj,
+#                                               first_frame_id, second_frame_id):
+#
+#         new_dic = {}  # Dictionary of the key d2_points the has tracks at the new frame "second frame"
+#         # We create a new one such that we can remove all the keypoints that has a track at
+#         # the first frame but does not continue to the next frame "second frame"
+#
+#         for i in range(len(first_frame_features_obj)):
+#             first_frame_feature = first_frame_features_obj[i]
+#             second_frame_feature = second_frame_features_obj[i]
+#
+#             first_frame_feature_kpt = first_frame_feature.get_left_kpt()
+#             second_frame_feature_kpt = second_frame_feature.get_left_kpt()
+#
+#             # Check if the key point in frame i continues an existing track
+#             # if so: add the kpt in the frame i + 1 to the  existing track
+#             # else: creates a new track by adding the d2_points of frame i and frame i + 1
+#             if first_frame_feature_kpt in self.__last_kpts:
+#
+#                 # Updates the dictionary of last key point to be to the key point of the second frame
+#                 track_idx = self.__last_kpts[first_frame_feature_kpt]
+#                 new_dic[second_frame_feature_kpt] = track_idx
+#
+#                 # Updates the track with keypoint in frame i + 1
+#                 track = self.__tracks[track_idx]
+#                 track.add_feature(second_frame_id, second_frame_feature)
+#
+#                 # Adds the track index to the frame i + 1
+#                 frame = self.__frames[second_frame_id]
+#                 frame.add_track(track_idx)
+#
+#             else:  # Creates a new track with frame i and frame i + 1
+#                 # Updates the dictionary of last key point to be to the key point of the second frame
+#                 track_idx = len(self.__tracks)
+#                 track = T.Track(track_idx)
+#                 new_dic[second_frame_feature_kpt] = track_idx
+#
+#                 self.add_track(track)
+#
+#                 # Creates the track and add its feature on frame i
+#                 track.add_feature(first_frame_id, first_frame_feature)
+#
+#                 frame = self.__frames[first_frame_id]
+#                 frame.add_track(track_idx)
+#
+#                 # Creates the track and add its feature on frame i + 1
+#                 track.add_feature(second_frame_id, second_frame_feature)
+#
+#                 frame = self.__frames[second_frame_id]
+#                 frame.add_track(track_idx)
+#
+#         return new_dic

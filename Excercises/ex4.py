@@ -15,7 +15,7 @@ FRAME_NAME = "FRAME"
 
 DB_TRACK_PATH = r'Results/Track frames_in_window.csv'
 DB_FRAME_PATH = r'Results/Frame tracks.csv'
-STAT_TRACK_FRAME_PATH = r'Results/Track and frames stat.csv'
+STAT_TRACK_FRAME_PATH = r'Results/Track and frames_ind stat.csv'
 
 
 def find_features_in_consecutive_frames_whole_movie(first_left_ex_cam_mat=utills.M1):

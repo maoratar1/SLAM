@@ -7,6 +7,7 @@ from DataDirectory import KittiData
 LOAD_KITTI = True
 LOAD_DB = True
 LOAD_BA = True
+LOAD_PG = True
 
 if LOAD_KITTI:
     # Load or create Kitti's DataDirectory
@@ -25,6 +26,7 @@ if LOAD_KITTI:
 from utils import utills
 from DataBaseDirectory import DataBase
 from BundleAdjustmentDirectory import BundleAdjustment
+from PoseGraphDirectory import PoseGraph
 
 if LOAD_DB:
     # Load or create DataDirectory base
@@ -54,3 +56,16 @@ if LOAD_BA:
         print(f"\tBundle adjustment object created and saved at : {BundleAdjustment.LOADED_BA_PATH}")
 
     print("")
+
+if LOAD_PG:
+    print("Trying to load an existing object of Pose Graph")
+    try:
+        PG = PoseGraph.load(PoseGraph.LOADED_POSE_GRAPH_PATH)
+        print(f"\tPose graph object exists and was loaded from the path: {PoseGraph.LOADED_POSE_GRAPH_PATH}")
+    except:
+        PG = PoseGraph.create_pose_graph()
+        PG.optimize()
+        PoseGraph.save(PoseGraph.LOADED_POSE_GRAPH_PATH, PG)
+        print(f"\tPose graph object created and saved at : {PoseGraph.LOADED_POSE_GRAPH_PATH}")
+
+print("")

@@ -1,3 +1,4 @@
+import heapq
 import random
 
 import cv2
@@ -6,7 +7,7 @@ import numpy as np
 import tqdm
 
 from DataDirectory import Data
-from DataBaseDirectory import Feature
+from DataBaseDirectory import Feature, Trck
 
 # == Databases ==
 KITTI = Data.KITTI
@@ -379,7 +380,7 @@ def online_est_pnp_ransac(model_parm_num, world_p3d_pts,
     # right0_proj_mat = calib_mat @ right0_ex_mat
 
     # Ransac loop
-    while outliers_perc != 0 and first_loop_iter < first_loop_iter_est(prob, outliers_perc):
+    while outliers_perc != 0 and first_loop_iter < first_loop_iter_est(prob, outliers_perc) and first_loop_iter < 1000:
 
         # Get randomize d2_points with amount of "model_param_num" and estimate the model by them
         pts_idx = np.random.randint(0, len(left1_matches_coor), model_parm_num)
@@ -428,6 +429,10 @@ def extra_refine(supp_idx, world_p3d_pts,
     """
 
     left1_ex_mat = None
+
+    if len(supp_idx) < 6:  # Todo: TRyuing to dealing twith bad match
+        return []
+
     for i in range(it_num):
         left1_ex_mat = pnp(world_p3d_pts[supp_idx], left1_matches_coor[supp_idx], calib_mat,
                            flag=cv2.SOLVEPNP_ITERATIVE)
@@ -509,8 +514,8 @@ def relative_camera_pos_4(left0_ex_mat, right0_ex_mat, left1_ex_mat, right1_ex_m
 def compose_transformations(first_ex_mat, second_ex_mat):
     """
     Compute the composition of two extrinsic camera matrices.
-    first_cam : A -> B
-    second_cam : B -> C
+    first_cam_mat : A -> B
+    second_cam_mat : B -> C
     composed mat : A -> C
     """
     # [R2 | t2] @ [ R1 | t1] = [R2 @ R1 | R2 @ t1 + t2]
@@ -598,7 +603,7 @@ def convert_trans_from_rel_to_global(T_arr):
     return relative_T_arr
 
 
-def gtsam_left_cameras_relative_trans(T_arr):
+def convert_gtsam_trans_from_rel_to_global(T_arr):
     relative_T_arr = []
     last = T_arr[0]
 
@@ -641,10 +646,10 @@ def gtsam_left_cameras_trajectory(relative_T_arr):
     :param T_arr: relative to first camera transformations array
     :return: numpy array with dimension num T_arr X 3
     """
-    relative_cameras_pos_arr = []
+    global_cam_loc = []
     for t in relative_T_arr:
-        relative_cameras_pos_arr.append(gtsam_relative_camera_pos(t))
-    return np.array(relative_cameras_pos_arr)
+        global_cam_loc.append(gtsam_relative_camera_pos(t))
+    return np.array(global_cam_loc)
 
 
 # === Ex4 === #
@@ -667,12 +672,14 @@ def find_features_in_consecutive_frames_whole_movie(first_left_ex_cam_mat=M1):
     for i in tqdm.tqdm(range(1, MOVIE_LEN)):
         left1_kpts, left1_dsc, right1_kpts, pair1_matches, pair1_rec_matches_idx = read_and_rec_match(frame_num=i)
 
-        trans, frame0_features, frame1_features, frame0_inliers_percentage = \
+        trans, frame0_features, frame1_features, frame0_inliers_percentage, supporters_idx = \
             find_features_in_consecutive_frames(
                 left0_kpts, left0_dsc, right0_kpts,
                 pair0_matches, pair0_rec_matches_idx,
                 left1_kpts, left1_dsc, right1_kpts,
                 pair1_matches, pair1_rec_matches_idx)
+
+        frame0_features, frame1_features = frame0_features[supporters_idx], frame1_features[supporters_idx]
 
         left0_kpts, left0_dsc, right0_kpts, pair0_matches, pair0_rec_matches_idx = left1_kpts, left1_dsc, \
                                                                                    right1_kpts, pair1_matches, \
@@ -733,7 +740,8 @@ def find_features_in_consecutive_frames(left0_kpts, left0_dsc, right0_kpts,
                                                       K, acc=SUPP_ERR)
 
     frame0_inliers_percentage = 100 * len(max_supp_group_idx) / len(frame0_features)
-    return trans, frame0_features[max_supp_group_idx], frame1_features[max_supp_group_idx], frame0_inliers_percentage
+
+    return trans, frame0_features, frame1_features, frame0_inliers_percentage, max_supp_group_idx
 
 
 def get_feature_obj(matches, img1_kpts, img2_kpts):
@@ -808,3 +816,141 @@ def convert_ex_cam_to_cam_to_world(ex_cam):
     ex_cam_mat_from_cam_to_world = np.hstack((R, t.reshape(3, 1)))  # Todo: check concatenation
 
     return ex_cam_mat_from_cam_to_world
+
+
+def convert_gtsam_ex_cam_to_world_to_cam(gtsam_ex_cam):
+    gtsam_R = gtsam_ex_cam.rotation()
+    R_mat = np.hstack((gtsam_R.column(1).reshape(3, 1),
+                       (gtsam_R.column(2).reshape(3, 1),
+                       (gtsam_R.column(3).reshape(3, 1)))))
+
+    t_vec = gtsam_ex_cam.translation()
+
+    R = R_mat.T
+    t = - R_mat.T @ t_vec
+
+    ex_cam_mat_from_world_to_cam = np.hstack((R, t.reshape(3, 1)))  # Todo: check concatenation
+
+    return ex_cam_mat_from_world_to_cam
+
+
+
+# ===== Ex7
+def create_empty_min_heap():
+    return heapq.heapify([])
+
+
+def mahalanobis_dist(delta, cov):
+    r_squared = delta.T @ np.linalg.inv(cov) @ delta
+    return r_squared ** 0.5
+
+
+def compute_gtsam_rel_trans(first_cam_mat, second_cam_mat):
+    # first_cam_to_world_ex_mat = convert_gtsam_ex_cam_to_world_to_cam(first_cam_mat)  # world -> first cam
+    first_cam_to_world_ex_mat = first_cam_mat.inverse()  # world -> first cam
+
+    # Compute transformation of : (world - > first cam) * (second cam -> world) = second cam-> first cam
+    second_cam_rel_to_first_cam_trans = first_cam_to_world_ex_mat.compose(second_cam_mat)
+
+    return second_cam_rel_to_first_cam_trans  # second cam-> first cam
+
+
+def gtsam_cams_delta(first_cam_mat, second_cam_mat):
+    gtsam_rel_trans = second_cam_mat.between(first_cam_mat)
+    return gtsam_translation_to_vec(gtsam_rel_trans.rotation(), gtsam_rel_trans.translation())  # Todo : check if its ok
+
+
+def rot_mat_to_euler_angles(R_mat):  # todo: change this function
+    sy = np.sqrt(R_mat[0, 0] * R_mat[0, 0] + R_mat[1, 0] * R_mat[1, 0])
+    singular = sy < 1e-6
+    if not singular:
+        azimut = np.arctan2(R_mat[2, 1], R_mat[2, 2])
+        pitch = np.arctan2(-R_mat[2, 0], sy)
+        roll = np.arctan2(R_mat[1, 0], R_mat[0, 0])
+    else:
+        azimut = np.arctan2(-R_mat[1, 2], R_mat[1, 1])
+        pitch = np.arctan2(-R_mat[2, 0], sy)
+        roll = 0
+    return np.array([azimut, pitch, roll])
+
+
+def translation_to_vec(translation):
+    R_mat, t_vec = translation[:, :3], translation[:, 3]
+    loc = - R_mat.T @ t_vec
+    euler_angles = rot_mat_to_euler_angles(R_mat)
+
+    return np.hstack((euler_angles, loc))
+
+
+def gtsam_translation_to_vec(R_mat, t_vec):
+    np_R_mat = np.hstack((R_mat.column(1).reshape(3, 1), R_mat.column(2).reshape(3, 1), R_mat.column(3).reshape(3, 1)))
+    euler_angles = rot_mat_to_euler_angles(np_R_mat)
+    return np.hstack((euler_angles, t_vec))
+
+
+def apply_full_consensus_match(first_frame, second_frame):
+    left0_kpts, left0_dsc, right0_kpts, pair0_matches, pair0_rec_matches_idx = read_and_rec_match(first_frame)
+    left1_kpts, left1_dsc, right1_kpts, pair1_matches, pair1_rec_matches_idx = read_and_rec_match(second_frame)
+
+    trans, frame0_features, frame1_features, frame0_inliers_percentage, supporters_idx = \
+                                find_features_in_consecutive_frames(left0_kpts, left0_dsc,
+                                                                    right0_kpts,
+                                                                    pair0_matches, pair0_rec_matches_idx,
+                                                                    left1_kpts, left1_dsc,
+                                                                    right1_kpts,
+                                                                    pair1_matches, pair1_rec_matches_idx)
+
+    return trans, frame0_features, frame1_features,  supporters_idx, frame0_inliers_percentage
+
+
+def find_loop_candidate_by_consensus_match(mahalanobis_dist_cand_movie_ind, mahalanobis_dist_cand_pg_ind,
+                                           cur_frame_movie_ind, threshold):
+    passed_consensus_frame_track_tuples = []  # {pose graph prev frame index : tracks between prev frame and cur frame}
+    cur_frame_left_kpts, cur_frame_left_dsc, cur_frame_right_kpts, \
+    cur_frame_matches, cur_frame_rec_matches_idx = read_and_rec_match(cur_frame_movie_ind)
+
+    for cand_ind, cand_at_movie_ind in enumerate(mahalanobis_dist_cand_movie_ind):
+        cand_frame_left_kpts, cand_frame_left_dsc, cand_frame_right_kpts, \
+        cand_frame_matches, cand_frame_rec_matches_idx = read_and_rec_match(cand_at_movie_ind)
+
+        _, frame0_features, frame1_features, inliers_perc, supportes_idx = find_features_in_consecutive_frames(cand_frame_left_kpts, cand_frame_left_dsc,
+                                                                    cand_frame_right_kpts,
+                                                                    cand_frame_matches, cand_frame_rec_matches_idx,
+                                                                    cur_frame_left_kpts, cur_frame_left_dsc,
+                                                                    cur_frame_right_kpts,
+                                                                    cur_frame_matches, cur_frame_rec_matches_idx)
+        frame0_features, frame1_features = frame0_features[supportes_idx], frame1_features[supportes_idx]
+
+        # Todo: check wether to return the inliers precentage or num
+        if inliers_perc > threshold:
+            # Data.DB.set_tracks_and_frames(frame0_features, frame1_features, cand, cur_frame_movie_ind)  # Todo: consider use it need to check its valid
+            tracks = create_little_tracks(frame0_features, frame1_features, cand_at_movie_ind, cur_frame_movie_ind)
+            passed_consensus_frame_track_tuples.append([mahalanobis_dist_cand_pg_ind[cand_ind], tracks])
+
+    return passed_consensus_frame_track_tuples
+
+
+def create_little_tracks(first_frame_features_obj, second_frame_features_obj, first_frame_id, second_frame_id):
+    # Todo: consider change this to add those track sto the data base
+    tracks = []
+
+    for i in range(len(first_frame_features_obj)):
+        first_frame_feature = first_frame_features_obj[i]
+        second_frame_feature = second_frame_features_obj[i]
+
+        track_idx = i
+        track = Trck.Track(track_idx)
+
+        # Creates the track and add its feature on frame i
+        track.add_feature(first_frame_id, first_frame_feature)
+
+        # Creates the track and add its feature on frame i + 1
+        track.add_feature(second_frame_id, second_frame_feature)
+
+        tracks.append(track)  # Todo: consider change to constant len and not applying append
+
+    return tracks
+
+
+
+

@@ -1,6 +1,8 @@
 import cv2
 import matplotlib.pyplot as plt
 
+INLIER_COLOR = "orange"
+OUTLIER_COLOR = "cyan"
 
 def plot_arr_values_as_function_of_its_indexes(values, title, file_path):
     """
@@ -123,7 +125,7 @@ def plot_left_cam_2d_trajectory(left_cameras_pos):
     fig = plt.figure()
 
     ax = fig.add_subplot()
-    ax.set_title(f"Left cameras 2d trajectory for {len(left_cameras_pos)} frames.")
+    ax.set_title(f"Left cameras 2d trajectory for {len(left_cameras_pos)} frames_ind.")
     ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
 
     fig.savefig(f"Results/Left cameras 2d trajectory.png")
@@ -137,7 +139,7 @@ def compare_left_cam_2d_trajectory_to_ground_truth(left_cameras_pos, left_camera
     fig = plt.figure()
 
     ax = fig.add_subplot()
-    ax.set_title(f"Left cameras 2d trajectory of {len(left_cameras_pos)} frames (ground truth - cyan)")
+    ax.set_title(f"Left cameras 2d trajectory of {len(left_cameras_pos)} frames_ind (ground truth - cyan)")
     ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
     ax.scatter(left_cameras_pos_gt[:, 0], left_cameras_pos_gt[:, 2], s=1, c='cyan')
 
@@ -153,12 +155,87 @@ def compare_left_cam_2d_trajectory_to_ground_truth_params(left_cameras_pos, left
 
     ax = fig.add_subplot()
     ax.set_title(f"Left cameras 2d trajectory compared to ground truth of"
-                 f" {len(left_cameras_pos)} frames (ground truth - cyan)\n"
+                 f" {len(left_cameras_pos)} frames_ind (ground truth - cyan)\n"
                  f"{alg_name} | {match_method} | Time: {time}")
     ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
     ax.scatter(left_cameras_pos_gt[:, 0], left_cameras_pos_gt[:, 2], s=1, c='cyan')
 
     fig.savefig(f"Results/Compare Left cameras 2d trajectory {alg_name} {match_method}.png")
+    plt.close(fig)
+
+
+def plot_supporters(first_frame_ind, second_frame_ind, left0, left1, left0_matches_coor=None, left1_matches_coor=None,
+                    supporters_idx=None, inliers_perc=None):
+    """
+    Plot KITTI supporters on left0 and left1
+    """
+    fig = plt.figure(figsize=(10, 7))
+    rows, cols = 2, 1
+
+    perc_title = ""
+    if left1_matches_coor is not None:
+        inliers_perc = format(inliers_perc, ".2f")
+        perc_title = f"supporters({inliers_perc}% inliers, {INLIER_COLOR})"
+
+    fig.suptitle(f'frame {first_frame_ind} and frame {second_frame_ind} {perc_title}')
+
+    # Left1 camera
+    fig.add_subplot(rows, cols, 2)
+    plt.imshow(left1, cmap='gray')
+    plt.title(f"frame {second_frame_ind}")
+
+    if left1_matches_coor is not None:
+        plt.scatter(left1_matches_coor[:, 0], left1_matches_coor[:, 1], s=3, color=OUTLIER_COLOR)
+        plt.scatter(left1_matches_coor[:, 0][supporters_idx], left1_matches_coor[:, 1][supporters_idx], s=3, color=INLIER_COLOR)
+
+    # Left0 camera
+    fig.add_subplot(rows, cols, 1)
+    plt.imshow(left0, cmap='gray')
+    plt.title(f"frame {first_frame_ind}")
+
+    if left0_matches_coor is not None:
+        plt.scatter(left0_matches_coor[:, 0], left0_matches_coor[:, 1], s=3, color=OUTLIER_COLOR)
+        plt.scatter(left0_matches_coor[:, 0][supporters_idx], left0_matches_coor[:, 1][supporters_idx], s=3,
+                    color=INLIER_COLOR)
+
+    fig.savefig(f"Results/Left {first_frame_ind} and {second_frame_ind} frames_ind supporters.png")
+    plt.close(fig)
+
+
+def plot_supporters_with_outliers(first_frame_ind, second_frame_ind, left0, left1,
+                                  left0_matches_coor=None, left1_matches_coor=None,
+                                  inliers_perc=None): # Todo: change to the version of ex3
+    """
+    Plot KITTI supporters on left0 and left1
+    """
+    fig = plt.figure(figsize=(10, 7))
+    rows, cols = 2, 1
+
+    perc_title = ""
+    if left1_matches_coor is not None:
+        inliers_perc = "{:.2f}".format(inliers_perc)
+        perc_title = f"supporters({inliers_perc}, {INLIER_COLOR})"
+
+    fig.suptitle(f'frame {first_frame_ind} and frame {second_frame_ind} {perc_title}')
+
+    # Left1 camera
+    fig.add_subplot(rows, cols, 2)
+    plt.imshow(left1, cmap='gray')
+    plt.title(f"frame {second_frame_ind}")
+
+    if left1_matches_coor is not None:
+        plt.scatter(left1_matches_coor[:, 0], left1_matches_coor[:, 1], s=1, color=OUTLIER_COLOR)
+        plt.scatter(left1_matches_coor[:, 0], left1_matches_coor[:, 1], s=3, color=INLIER_COLOR)
+
+    # Left0 camera
+    fig.add_subplot(rows, cols, 1)
+    plt.imshow(left0, cmap='gray')
+    plt.title(f"frame {first_frame_ind}")
+    if left0_matches_coor is not None:
+        plt.scatter(left0_matches_coor[:, 0], left0_matches_coor[:, 1], s=1, color=OUTLIER_COLOR)
+        plt.scatter(left0_matches_coor[:, 0], left0_matches_coor[:, 1], s=3, color=INLIER_COLOR)
+
+    fig.savefig("Results/Left0 Left1 supporters.png")
     plt.close(fig)
 
 
@@ -198,32 +275,76 @@ def plot_cam_and_landmarks_2d_trajectory(cameras, landmarks):
 
 def plot_left_cam_2d_trajectory_and_3d_points_compared_to_ground_truth(cameras=None, landmarks=None,
                                                                        initial_estimate_poses=None, cameras_gt=None,
-                                                                       title=""):
+                                                                       title="",
+                                                                       loops=None, numbers=False,
+                                                                       mahalanobis_dist=None, inliers_perc=None):
     """
     Compare the left cameras relative 2d positions to the ground truth
     """
+    loops_title = ""
+    # if loops is not None:
+    #     loops_title = f"Loops: {loops}"
+
     fig = plt.figure()
     ax = fig.add_subplot()
+    first_legend = []
 
-    ax.set_title(f"{title} Left cameras and landmarks 2d trajectory of {len(initial_estimate_poses)} bundles")
+    ax.set_title(f"{title} Left cameras and landmarks 2d trajectory of {len(cameras_gt)} bundles.\n"
+                 f"Dist = Mahalanobis distance"
+                 f"{loops_title}", )
 
     if landmarks is not None:
-        ax.scatter(landmarks[:, 0], landmarks[:, 2], s=1, c='orange', label="Landmarks")
-
-    if cameras is not None:
-        ax.scatter(cameras[:, 0], cameras[:, 2], s=1, c='red', label="Cameras")
-
-    if cameras_gt is not None:
-        ax.scatter(cameras_gt[:, 0], cameras_gt[:, 2], s=1, c='cyan', label="Cameras ground truth")
+        a = ax.scatter(landmarks[:, 0], landmarks[:, 2], s=1, c='orange', label="Landmarks")
+        first_legend.append(a)
 
     if initial_estimate_poses is not None:
-        ax.scatter(initial_estimate_poses[:, 0], initial_estimate_poses[:, 2], s=1, c='pink', label="Initial estimate")
+        first_legend.append(ax.scatter(initial_estimate_poses[:, 0], initial_estimate_poses[:, 2], s=1, c='pink', label="Initial estimate"))
 
-    ax.legend(loc="upper left")
-    ax.set_xlim(-250, 350)
-    ax.set_ylim(-100, 550)
+    if cameras is not None:
+        first_legend.append(ax.scatter(cameras[:, 0], cameras[:, 2], s=1, c='red', label="Cameras"))
 
-    fig.savefig(f"Results/{title} Left cameras and landmarks 2d trajectory.png")
+    if cameras_gt is not None:
+        first_legend.append(ax.scatter(cameras_gt[:, 0], cameras_gt[:, 2], s=1, c='cyan', label="Cameras ground truth"))
+
+    # Mark loops
+    if loops is not None:
+        for cur_cam, prev_cams in loops:
+            y_diff = 0 if abs(cameras[:, 0][cur_cam] - cameras[:, 0][cur_cam - 1]) < 2 else 15
+            x_diff = 0 if abs(cameras[:, 2][cur_cam] - cameras[:, 2][cur_cam - 1]) < 2 else 20
+
+            if numbers:
+                ax.text(cameras[:, 0][cur_cam] - x_diff, cameras[:, 2][cur_cam] - y_diff, cur_cam, size=7, fontweight="bold")
+            ax.scatter(cameras[:, 0][cur_cam], cameras[:, 2][cur_cam], s=3, c='black')
+
+            if numbers:
+                for prev_cam in prev_cams:
+                    ax.text(cameras[:, 0][prev_cam], cameras[:, 2][prev_cam], prev_cam, size=7, fontweight="bold")
+            ax.scatter(cameras[:, 0][prev_cams], cameras[:, 2][prev_cams], s=1, c='black')
+
+    # ax.set_xlim(-288, 600)
+    # ax.set_ylim(-100, 420)
+    plt.subplots_adjust(left=0.25, bottom=0.08, right=0.95, top=0.9)
+
+    landmarks_txt = "and landmarks" if landmarks is not None else ""
+    mahalanobis_dist_and_inliers = f"Dist: {mahalanobis_dist}; Inliers: {inliers_perc}%\n"
+
+    len_loops = None
+    if loops is not None:
+        loops_details = "\n".join([str(i) + ")  " + str(cur_cam) + ": " + ",".join([str(prev_cam) for prev_cam in prev_cams])
+                                   for i, (cur_cam, prev_cams) in enumerate(loops)])
+
+        loops_txt = mahalanobis_dist_and_inliers + loops_details
+        # y = -65 + 9 * len(loops)
+        plt.text(-360, -67, loops_txt, fontsize=8, bbox=dict(facecolor='white', alpha=0.5))
+        len_loops = len(loops)
+
+    first_legend = plt.legend(handles=first_legend, loc='upper left', prop={'size': 7})
+    plt.gca().add_artist(first_legend)
+    # loops_plot,  = plt.plot([], [], ' ', label=loops_txt)
+    # plt.legend(handles=[loops_plot], loc='lower left', )
+
+    fig.savefig(f"Results/{title} Left {len(cameras_gt)} cameras {landmarks_txt} 2d trajectory "
+                f"m dist {mahalanobis_dist_and_inliers} loops {len_loops}.png")
     plt.close(fig)
 
 
