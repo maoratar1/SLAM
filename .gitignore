@@ -1,5 +1,5 @@
 # created by virtualenv automatically
- .DS_Store
+.DS_Store
 .idea/
 DataBaseDirectory/db_akaze_bf.pickle
 DataDirectory/.DS_Store
@@ -8,6 +8,12 @@ Results/ Left cameras and landmarks 2d trajectory.png
 Results/.DS_Store
 Results/Euclidean distance error.png
 Results/db options/
+BundleAdjustmentDirectory/bundle_adjustment.pickle
+DataBaseDirectory/db_akaze_knn.pickle
+PoseGraphDirectory/pose_graph.pickle
+PoseGraphDirectory/VertexGraph_before_canging_min_heap.py
+
 __pycache__/
 main.py
 venv/
+.gitignore
