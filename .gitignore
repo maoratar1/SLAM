@@ -1,0 +1,13 @@
+# created by virtualenv automatically
+ .DS_Store
+.idea/
+DataBaseDirectory/db_akaze_bf.pickle
+DataDirectory/.DS_Store
+DataDirectory/KITTI_DATA.pickle
+Results/ Left cameras and landmarks 2d trajectory.png
+Results/.DS_Store
+Results/Euclidean distance error.png
+Results/db options/
+__pycache__/
+main.py
+venv/
