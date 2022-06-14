@@ -85,7 +85,7 @@ To continue from here we would assume the following assumptions:
 
 so by using those assumptions, bayes role and Cholesky decomposition we get:
 
-<img src=README_Images/BundleAdjustmentPart/BundleFormal.png width="350" height="160">
+<img src=README_Images/BundleAdjustmentPart/BundleFormal.png width="460" height="205">
 
 delta z is the re projection error mentioned above and is defined to be the difference 
 between the projection of landmark q_i on c_j and our measure z_{i,j}
