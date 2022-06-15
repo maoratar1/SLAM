@@ -235,18 +235,18 @@ the tracking process is done as follows:
 
 Example of tracking:
 
-<img src=README_Images/DeterministicApproach/4PointTracking.png width="500" height="360">
+<img src=README_Images/DeterministicApproach/4PointTracking.png width="650" height="420">
 
 ###### Implementation
 The tracking process is done by the following function:
 ```python
-find_features_in_consecutive_frames(
-                                left0_kpts, left0_dsc, right0_kpts,
-                                pair0_matches, pair0_rec_matches_idx,
-                                left1_kpts, left1_dsc, right1_kpts,
-                                pair1_matches, pair1_rec_matches_idx)
+from utils.utills import tracking_4images
+tracked_pair_0_matches, tracked_pair_1_matches = \
+                            tracking_4images(left0_dsc, left1_dsc,
+                                            pair0_matches, pair0_rec_matches_idx,
+                                            pair1_matches, pair1_rec_matches_idx)
 ```
-
+This function returns 
 
 ## Back to the Bundle Adjustment
 Because there is some noise in our measures, we want to add an uncertainty factor
