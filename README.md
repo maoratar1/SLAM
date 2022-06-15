@@ -241,12 +241,36 @@ Example of tracking:
 The tracking process is done by the following function:
 ```python
 from utils.utills import tracking_4images
-tracked_pair_0_matches, tracked_pair_1_matches = \
-                            tracking_4images(left0_dsc, left1_dsc,
-                                            pair0_matches, pair0_rec_matches_idx,
-                                            pair1_matches, pair1_rec_matches_idx)
+tracking_4images(left0_dsc, left1_dsc, 
+                 pair0_matches, pair0_rec_matches_idx,
+                 pair1_matches, pair1_rec_matches_idx)
 ```
-This function returns 
+`pair0_matches` list of matches (`DMatch` cv2 object) at pair 0
+This function returns 2 lists, one for pair 0 matches that were tracked in all 4 images and
+the other for the pair 1 matches. We did not write them due to row space limit.
+Notice that this function receives a matches at pair 0 and pair 1 and their indexes where
+there is a match that passed the rectified policy
+
+Let's dive in to this function a little and explain how we have done this tracking:
+
+At first, we perform matching between left 0 and left 1:
+```python
+from utils.utills import matching
+# Find matches between left0 and left1
+    left0_left1_matches = matching(left0_dsc, left1_dsc)
+```
+Then, for each pair, assume pair 0 for convenience, we create a dictionary
+whose keys are the `left0_dsc`'s indexes (where each descriptor index corresponds to 
+one key point) and the values for each key is the `pair0_rec_matches_idx` means the
+index at the list that its values are indexes of pair 0 matches list which passed the
+rectified rejection policy.
+This done by:
+```python
+from utils.utills import create_rec_dic
+# dict of {left kpt idx: pair rec id}
+rec0_dic = create_rec_dic(pair0_matches, pair0_rec_matches_idx)
+```
+
 
 ## Back to the Bundle Adjustment
 Because there is some noise in our measures, we want to add an uncertainty factor
