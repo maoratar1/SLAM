@@ -235,7 +235,7 @@ the tracking process is done as follows:
 
 Example of tracking:
 
-<img src=README_Images/DeterministicApproach/4PointTracking.png width="500" height="350">
+<img src=README_Images/DeterministicApproach/4PointTracking.png width="500" height="360">
 
 ###### Implementation
 The tracking process is done by the following function:
