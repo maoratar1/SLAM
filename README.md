@@ -37,6 +37,8 @@ that has stereo camera on its roof, and it takes photos for some time.
 
 
 ## Kitti's Benchmark
+http://www.cvlibs.net/datasets/kitti/
+
 Kitty is a ~~Add content about this company~~ company. 
 
 Kitty uses a car includes some sensors that drives along some streets
@@ -53,7 +55,7 @@ In my project I use only the black and white stereo cameras.
 
 ~~Add explanation on camera matrices~~
 
-## Bundle Adjustment - A light touch
+## Bundle Adjustment - First glimpse
 As mentioned above, we are doing localization and mapping, localization
 is finding object's location in "world" ~~Explain about it~~ coordinates
 and mapping is creating some mapping of object's in the world.
@@ -125,14 +127,78 @@ This linear system does not necessarily have a solution, that geometrically repr
 the case where the two rays are not intersected but crossed. So, for solving those
 equations we have `SVD` which is very helpful in the `Linear Least Square` problems.
 
-### Least square
-Least square is an algorithm that is used for adapting a model to a given data 
-when the amount of data is larger than the model's parameters and with the assumptions
-that the data is noisy this algorithm obtained the "closest" model to the desired one.
+The bottom line is that we are applying that matrix and returns the last vector at V 
+from the SVD decomposition.
+
+```python
+# Performs triangulation for list of first image key points and returns a list.
+p3d_hom = triangulate(left_cam_mat, right_cam_mat, kp1_xy_lst, kp2_xy_lst):
+```
+Remarks:
+1. `traingulate` function can be found at utils.utills
+
+#### Least square
+Least square is an algorithm that is used for fitting a model to a given data 
+when the data's amount is larger than the model's parameters and with the assumption
+that the data is noisy, this algorithm obtains the "closest", in meaning of Residual sum
+of squares, model to the desired one.
 
 There are 2 cases of Least square, the linear case, where there is some linear
 relations between the data and the value we want to predict, and the non linear one.
+Formally, we can present the linear case as:
 
+<img src=README_Images/DeterministicApproach/LeastSquareDesc.png width="380" height="100">
+
+if b is not equal to zero the solutions go through the pseudo-inverse and if b = 0, 
+the homogeneous case, We calculate A's SVD and the desired vector is **the last column
+of V**
+
+#### Linear equations
+There are 3 options for linear system equations, Ax = b:
+1. if A is cubic matrix - need to check if A is invertible 
+2. A is fat, more columns than rows - there are infinite solutions in that case we will search
+for the minimum norm solution
+3. A is thin, more rows than colums, there are zero solutions, so we search for the closest solution,
+means the projection of x on the A dimension
+
+### Localization
+The localization is done inductively by the following pseudocode:
+1. Initialize frame 0 location to (0, 0, 0)
+2. For the ith frame, i in range()
+   1. Perform _tracking_ between ith and (i - 1)th frames
+   2. Create a point cloud of the (i - 1)th frame  - `Triangulation`.
+   3. Compute the transformation between those frames using steps 1 - 2 - `PnP`.
+   4. Compute the ith frame 3d location.
+
+Let's explain each step, but because `PnP` is the main algorithm here we will explain
+it first.
+
+#### PnP algorithm
+`PnP`, shortcut of Projective n Points, is an algorithm that Given n landmarks at the
+world coordinates, their projection on the camera plane and the 
+`Intrinsic camera matrix`, denoted by K, it returns the
+transformation between world and camera.
+
+In the following image, the Xs represents the points at the world coordinates, 
+the zs are their projection at the camera plane and X_p is the camera pose that we
+are interested to find.
+
+<img src=README_Images/DeterministicApproach/PnP.png width="230" height="150">
+
+The following code will perform the PnP algorithm:
+```python
+import utils.utills as utills
+ex_cam_matrix = utills.pnp(world_p3d_pts, img_proj_coor, 
+                                  calib_mat, flag)
+```
+This function wraps the `cv2.pnp()` method. The cv2's PnP returns a `Rodriguez` vector
+so at our function we call cv2's PnP and, if it succeeds, our function will convert it
+to a transformation matrix.
+`world_p3d_pts` are the X's, `img_proj_coor` are the z's, `calib_mat` is the 
+calibration or intrinsic matrix of the camera and `flag` is the cv2's `SOLVEPNP` method 
+that the `cv2.pnp()` is expected to get.
+
+So, for using PnP method we need 
 
 ## Back to the Bundle Adjustment
 Because there is some noise in our measures, we want to add an uncertainty factor
