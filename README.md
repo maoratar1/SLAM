@@ -6,6 +6,9 @@ Refael Vivanti.
 This is my summarize in hebrew for te course:
 [Course summarize](http://www.github.com)
 
+>It should be noted that all images that I had not mentioned their source, are images
+> from the Course.
+
 ## tl;dr
 
 
@@ -66,9 +69,10 @@ By saying "Seeing by a camera" we means that it can be projected to the camera p
 So we can look at this structure as "Bundles" that suppose to fit perfectly. As 
 we can see at the following image:
 
-Thanks to Courtesy of Ackermann
 
 <img src=README_Images/BundleAdjustmentPart/BundleStructure.png width="300" height="200">
+
+> Thanks to Courtesy of Ackermann
 
 
 So we want to fit the bundles, means that we want that all cameras and landmarks
@@ -101,6 +105,11 @@ A point cloud is a map that tells us about every coordinate in the world
 if there is some object in that place, but it does not tell us if there is **no**
 object there.
 
+In order to create a point cloud we will use 2 concepts: `Triangulation` and `Matching`
+
+#### Matcing
+`Matching` is the process of
+
 #### Triangulation
 In order to create a map of the world we can use the operation called `Triangulation`.
 It is called that way due to a geometric consideration. The Triangulation operation
@@ -108,6 +117,8 @@ get as input 1) pair of match cameras pixels and 2) Projections metrics for each
 and return the 3d point in the world they represent.
 
 <img src=README_Images/DeterministicApproach/Triangulation.png width="250" height="150">
+
+> Courtesy of David Arnon and Refael Vivanti 
 
 Applying the Triangulation is no other than solving a linear system of 4 equations.
 If we denote by P and Q the left and right cameras matrices respectively, 
@@ -158,10 +169,10 @@ There are 3 options for linear system equations, Ax = b:
 1. if A is cubic matrix - need to check if A is invertible 
 2. A is fat, more columns than rows - there are infinite solutions in that case we will search
 for the minimum norm solution
-3. A is thin, more rows than colums, there are zero solutions, so we search for the closest solution,
+3. A is thin, more rows than columns, there are zero solutions, so we search for the closest solution,
 means the projection of x on the A dimension
 
-### Localization
+### Localization; PnP, Tracking and Triangulation
 The localization is done inductively by the following pseudocode:
 1. Initialize frame 0 location to (0, 0, 0)
 2. For the ith frame, i in range()
@@ -185,11 +196,12 @@ are interested to find.
 
 <img src=README_Images/DeterministicApproach/PnP.png width="230" height="150">
 
+> Courtesy of David Arnon and Refael Vivanti 
+
 The following code will perform the PnP algorithm:
 ```python
-import utils.utills as utills
-ex_cam_matrix = utills.pnp(world_p3d_pts, img_proj_coor, 
-                                  calib_mat, flag)
+from utils.utills import pnp 
+ex_cam_matrix = pnp(world_p3d_pts, img_proj_coor, calib_mat,pnp_method)
 ```
 This function wraps the `cv2.pnp()` method. The cv2's PnP returns a `Rodriguez` vector
 so at our function we call cv2's PnP and, if it succeeds, our function will convert it
@@ -198,7 +210,28 @@ to a transformation matrix.
 calibration or intrinsic matrix of the camera and `flag` is the cv2's `SOLVEPNP` method 
 that the `cv2.pnp()` is expected to get.
 
-So, for using PnP method we need 
+So, for using PnP method we need a point cloud that, as mentioned at the pseudocode,
+is done from the (i - 1)th frame and match each 3d point to a pixel at the ith frame
+image plane, for doing that we will need to use the `Tracking` process.
+
+#### Tracking
+`Tracking` is the process of finding key points in consecutive frames
+where we wish to find a key point which appears in all 4 images. Practically speaking,
+we perform a keypoint matching at the first frame, second frame and between the 
+lefts images of those consecutive frames. For convenience we will call the first frame
+, frame 0, the second frame, frame 1 and their left and right images left_i and right_i
+correspondingly.
+
+<img src=README_Images/DeterministicApproach/tracking.png width="250" height="200">
+
+> Courtesy of David Arnon and Refael Vivanti 
+
+As mentioned above, matching is down with the rectified rejection policy, so
+the tracking process is done as follows:
+1. Find matches between frame 0 with the rectified rejection policy
+2. Find matches between frame 1 with the rectified rejection policy
+3. Find matches between left0 and left1 images
+4. Return matches that are in all 3 lists.
 
 ## Back to the Bundle Adjustment
 Because there is some noise in our measures, we want to add an uncertainty factor
@@ -227,7 +260,7 @@ with the homogenous coordinate which is non-linear operation.
 
 So solving Bundle adjustment, under our assumptions, is actually solving the Least square
 problem. Recall that solving a Least square problem is done iteratively where in each
-iteration we find the best step to step in to minimize our function. In practice we will
+iteration we find the best step to step in to minimize our function. In practice, we will
 use gtsam's implementation of the Levenberg-Marquardt algorithm which one can think
 about it as a mixture of Gradient descent and Gauss-Newton algorithms.
 
@@ -259,9 +292,9 @@ As mentioned above Edge's constraint is the measure of the landmark on the camer
 
 So actually we are converting our bayesian graph to the factor graph:
 
-Courtesy of David Arnon and Refael Vivanti 
-
 <img src=README_Images/BundleAdjustmentPart/BayedianGraphToFactorGraph.png width="600" height="200">
+
+> Courtesy of David Arnon and Refael Vivanti 
 
 #### Bundles "windows"
 Due to the fact that solving the Least square problem using the Levenberg-Marquardt 
@@ -276,6 +309,8 @@ It is important to notice that the last bundle window's key frame and the first
 bundle window's key frame overlap
 
 <img src=README_Images/BundleAdjustmentPart/BundleWindows.png width="490" height="180">
+
+> Courtesy of David Arnon and Refael Vivanti 
 
 ##### Choosing key frames
 We choose the key frame iteratively by the following way. For the last chosen key frame
@@ -602,9 +637,9 @@ and their relative covariance.
 The above can be computed with:
 
 ```python
-consen_frame_track_tuples = find_loop_cand_by_consensus(mahalab_cand_movie_ind,
-                                        mahalab_dist,
-                                        cur_frame_movie_ind,
+consen_frame_track_tuples = find_loop_cand_by_consensus(
+                                        mahalab_cand_movie_ind,
+                                        mahalab_dist, cur_frame_movie_ind,
                                         INLIERS_THRESHOLD_PERC)
 ```
 
