@@ -6,6 +6,9 @@ Refael Vivanti.
 This is my summarize in hebrew for te course:
 [Course summarize](http://www.github.com)
 
+## tl;dr
+
+
 ## Overview
 Slam, shortcut of **S**imultaneous **l**ocalization **a**nd **m**apping, 
 is a family of problems that, for a moving object, 
@@ -15,7 +18,7 @@ an algorithm for solving the Slam issue.
 In this project I implement, that in some meaning is a refined version for the
 "Frame slam" article ~~Add Link~~.
 
-In this project we are using the concepts:
+In this project we are using the following concepts and others:
 - Bundle Adjustment
 - Loop closure
 - triangulation
@@ -48,8 +51,9 @@ In my project I use only the black and white stereo cameras.
 - Extrinsic cameras Left and right
 - 3450 Frames
 
-## Bundle Adjustment
-### Theory
+~~Add explanation on camera matrices~~
+
+## Bundle Adjustment - A light touch
 As mentioned above, we are doing localization and mapping, localization
 is finding object's location in "world" ~~Explain about it~~ coordinates
 and mapping is creating some mapping of object's in the world.
@@ -69,9 +73,68 @@ So we want to fit the bundles, means that we want that all cameras and landmarks
 poses would be in a place that the landmarks projections would fit to 
 our measures. "measure" means pixels in some camera that some landmark 
 appears at. Practically, bundle adjustment algorithm get as input, 
-Cameras, Landmarks, measures and outputs cameras and landmarks poses that
+Cameras, Landmarks and  projections measures and outputs cameras and landmarks poses that
 minimize the re projection error.
 
+Due to the fact the bundle algorithm is a style Gradient descent algorithm which 
+finds a local minimum there is a greate importance in choosing the algorithm's
+starting point, or as we call it in the code `initial_estimation`. So before
+diving in to the bundle adjustment method we will start with a deterministic
+approach to the problem that will obtain some, and I might say not bad, 
+trajectory estimation that will be used as our initial estimation.
+
+## Estimate trajectory - Deterministic approach 
+So, as we said above, we want to create a world mapping and to find our 
+location simultaneously. Let's start with mapping.
+
+### Mapping
+In "mapping" we mean that for a given camera's location we want to create some
+map of the world surrounds us. There are several ways to define a map on the world, like
+geometric map, topological map and others. In our project we will use the 
+point cloud map.
+
+#### Point cloud
+
+A point cloud is a map that tells us about every coordinate in the world 
+if there is some object in that place, but it does not tell us if there is **no**
+object there.
+
+#### Triangulation
+In order to create a map of the world we can use the operation called `Triangulation`.
+It is called that way due to a geometric consideration. The Triangulation operation
+get as input 1) pair of match cameras pixels and 2) Projections metrics for each camera
+and return the 3d point in the world they represent.
+
+<img src=README_Images/DeterministicApproach/Triangulation.png width="250" height="150">
+
+Applying the Triangulation is no other than solving a linear system of 4 equations.
+If we denote by P and Q the left and right cameras matrices respectively, 
+the desired 3d point by X and p and q the left and right pixels of X
+we get that multiplying P with X, at homogeneous coordinates, yields us p_hat
+(at homogeneous coordinates) that equals to p and the same for q. This leaves us
+with a linear equation system with that can be represented as a matrix of 4 X 3 as 
+we can see for P:
+
+<img src=README_Images/DeterministicApproach/PX.png width="800" height="90">
+
+And by doing the same for Q and concatenating those equations we get:
+
+<img src=README_Images/DeterministicApproach/TriangulationEquations.png width="200" height="100">
+
+This linear system does not necessarily have a solution, that geometrically represents
+the case where the two rays are not intersected but crossed. So, for solving those
+equations we have `SVD` which is very helpful in the `Linear Least Square` problems.
+
+### Least square
+Least square is an algorithm that is used for adapting a model to a given data 
+when the amount of data is larger than the model's parameters and with the assumptions
+that the data is noisy this algorithm obtained the "closest" model to the desired one.
+
+There are 2 cases of Least square, the linear case, where there is some linear
+relations between the data and the value we want to predict, and the non linear one.
+
+
+## Back to the Bundle Adjustment
 Because there is some noise in our measures, we want to add an uncertainty factor
 to this process so getting more formally, in the bundle adjustment algorithm
 given a set of measures, denoted by Z, we want to find
@@ -146,7 +209,7 @@ Each bundle window consists 2 key frames and all the frames between them.
 It is important to notice that the last bundle window's key frame and the first
 bundle window's key frame overlap
 
-<img src=README_Images/BundleAdjustmentPart/BundleWindows.png width="450" height="180">
+<img src=README_Images/BundleAdjustmentPart/BundleWindows.png width="490" height="180">
 
 ##### Choosing key frames
 We choose the key frame iteratively by the following way. For the last chosen key frame
@@ -533,17 +596,6 @@ Code
 <img src=README_Images/BundleAdjustmentPart/BundleWindows.png width="400" height="140">
 
 
-
-## Initial estimation for the bundle adjustment
-#### Theory
-Enter here : triangulation, pnp ,ransac ,consensus match
-
-#### Practical
-
 ## Data base
 knn - time 7:05 minutes
 
-## Loop Closure
-#### Theory
-Explanation about Loop closure
-#### Practical
