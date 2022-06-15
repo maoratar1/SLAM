@@ -120,7 +120,7 @@ and return the 3d point in the world they represent.
 
 > Courtesy of David Arnon and Refael Vivanti 
 
-Applying the Triangulation is no other than solving a linear system of 4 equations.
+Applying the Triangulation is none other than solving a linear system of 4 equations.
 If we denote by P and Q the left and right cameras matrices respectively, 
 the desired 3d point by X and p and q the left and right pixels of X
 we get that multiplying P with X, at homogeneous coordinates, yields us p_hat
@@ -138,15 +138,57 @@ This linear system does not necessarily have a solution, that geometrically repr
 the case where the two rays are not intersected but crossed. So, for solving those
 equations we have `SVD` which is very helpful in the `Linear Least Square` problems.
 
-The bottom line is that we are applying that matrix and returns the last vector at V 
+The bottom line is that we are 'SVDing' that matrix and returns the last vector at V 
 from the SVD decomposition.
+
 
 ```python
 # Performs triangulation for list of first image key points and returns a list.
-p3d_hom = triangulate(left_cam_mat, right_cam_mat, kp1_xy_lst, kp2_xy_lst):
+from utils.utills import triangulate
+p3d_hom = triangulate(left_cam_mat, right_cam_mat, kp1_xy_lst, kp2_xy_lst)
 ```
-Remarks:
-1. `traingulate` function can be found at utils.utills
+#### Triangulation rejection policy
+Practically, the triangulation provides us with another outliers'
+rejection policy. We can reject two kind of 3d points :
+1. Very far points
+2. Points with negative z value. 
+
+The reason for rejecting very far points is that although those point can be a good match, they
+are not telling us so much about their location because far away points tends to have a high
+error of their triangulation estimation so for our future purposes we would prefer to ignore them.
+The reason for far away points error's to get high value can be explained by the following:
+The key thing that causes the triangulation's error is the Feature detector inaccuracy and 
+by simply assuming that the detector inaccuracy over the image is equal, means their is no 
+reason that far away points will have a greater inaccuracy than closer ones
+because after all they both are pixels in the image. 
+Now, for simplicity lets assume that the triangulation's triangle is an 
+isosceles triangle with base angles of 'a' and baseline 'm' we get that the
+object's distance from the camera equals X = m / tan(a) so the distance depends on tg(a) 
+and due to the tangent function behavior in the range [0, pi / 2] 
+we have that for error of e and two angles a > b it holds that 
+: tg(a + e) / tg(a) > tg(b + 3) / tg(b). Therefore inaccuracy of e is more dramatic at larger
+angles. 
+
+Rejecting points with negative values is obviously but let's explain how does points are created.
+We notice that because the left camera is from the left of the right camera we suppose to
+have that a 3d point in the world would project to the left image's and the right image's 
+pixels such that x_l > x_r. So as x_r get closer to x_l we get that the triangulation result
+will be far as well untill we have the situation where x_r > x_l and in that case, the 
+triangulation triangle is changing direction and now the ray's intersection will be **behind**
+the cameras. So when we are collecting our data we can add this rejection policy:
+```python
+if x_r > x_l or x_l - x_r < TRIANGULATION_THRESH:
+    return
+```
+
+We have done this policy rejection at the following function:
+
+```python
+from utils.utills import far_or_neg_pts_rej
+
+far_or_neg_pts_rej(left0_coor, right0_coor)
+```
+This functions returns the lists indexes that their corresponding values passed the test.
 
 #### Least square
 Least square is an algorithm that is used for fitting a model to a given data 
@@ -201,7 +243,7 @@ are interested to find.
 The following code will perform the PnP algorithm:
 ```python
 from utils.utills import pnp 
-ex_cam_matrix = pnp(world_p3d_pts, img_proj_coor, calib_mat,pnp_method)
+ex_cam_matrix = pnp(world_p3d_pts, img_proj_coor, calib_mat, pnp_method)
 ```
 This function wraps the `cv2.pnp()` method. The cv2's PnP returns a `Rodriguez` vector
 so at our function we call cv2's PnP and, if it succeeds, our function will convert it
@@ -255,21 +297,89 @@ Let's dive in to this function a little and explain how we have done this tracki
 
 At first, we perform matching between left 0 and left 1:
 ```python
-from utils.utills import matching
+from utils.utills import match
 # Find matches between left0 and left1
-    left0_left1_matches = matching(left0_dsc, left1_dsc)
+left0_left1_matches = match(left0_dsc, left1_dsc)
 ```
 Then, for each pair, assume pair 0 for convenience, we create a dictionary
 whose keys are the `left0_dsc`'s indexes (where each descriptor index corresponds to 
-one key point) and the values for each key is the `pair0_rec_matches_idx` means the
-index at the list that its values are indexes of pair 0 matches list which passed the
-rectified rejection policy.
+one key point) and the values for each key is the `pair0_rec_matches_idx` values, means the
+index at the pair 0 matches list which passed the rectified rejection policy.
 This done by:
 ```python
 from utils.utills import create_rec_dic
 # dict of {left kpt idx: pair rec id}
 rec0_dic = create_rec_dic(pair0_matches, pair0_rec_matches_idx)
 ```
+ And we do the same for pair1. Now, we pass over the left0 and left1 matches 
+for each match, which is a tuple (left0 key point, left1 key point) of a matching key points 
+ we check if the left0 key point is in its rec0_dic - means that it passed
+the rectified test, and the same for the left1 key point. if they both passed the test, that
+means that this feature is in the all 4 images, Therefore we choose its index at the
+pair 0 rectified indexes and at the pair 1 rectified indexes, That way we create a new 
+ **3** lists where each of them contains the indexes of the matches lists that were tracked
+in all 4 images. Important to notice that those lists are "sharing indexes" means that the
+ith value in each list points to an index at the matches list and those matches match to each 
+other.
+
+All this is done by:
+```python
+from utils.utills import find_kpts_in_all_4_rec
+find_kpts_in_all_4_rec(left0_left1_matches, rec0_dic, rec1_dic)
+```
+Let's denote the 2 lists (actually it's returns 3, but we use just two of them) with 
+`tracked_pair0_idx` and `tracked_pair1_idx`, so finally the function returns :
+
+```python
+return pair0_matches[tracked_pair0_idx],  pair1_matches[tracked_pair1_idx]
+```
+
+#### Creating point cloud
+As mentioned above, at the PnP algorithm we need tuples of (pixel, 3d point) such that the
+3d point is projected to the pixel at the camera plane. So, we need triangulate
+at the tracked features only.
+
+This can be done simply by:
+```python
+from utils.utills import get_feature_obj, get_features_left_coor, \
+                            get_features_right_coor, triangulate
+# Get frame 0 Feature objects (which passed the rec test)
+frame0_features = get_feature_obj(tracked_pair_0_matches, left0_kpts, right0_kpts)
+
+# Here we take only their d2_points
+left0_matches_coor = get_features_left_coor(frame0_features)
+right0_matches_coor = get_features_right_coor(frame0_features)
+
+# Frame 0 triangulation
+pair0_p3d_pts = triangulate(K @ M1, K @ M2, left0_matches_coor, right0_matches_coor)
+```
+
+At the function ,at the first row, `get_feature_obj` we create a list of `Feature`
+objects that represents a feature in a frame. This object can be found at the
+`DataBaseDirectory`
+
+fFr testing my PnP transformation quality I plotted two points cloud one for first frame
+and another for the second frame, each in its own coordinates system, and then I mapped the
+first point cloud to the coordinates system of the second frame, and I've the following result:
+
+<img src=README_Images/DeterministicApproach/2PointsCloud.png width="350" height="280">
+
+
+#### Finding location
+Now that we have in hand the transformation between frame (i - 1) to frame i we 
+can compute the ith camera location simply by:
+
+<img src=README_Images/DeterministicApproach/findloc.png width="390" height="110">
+
+Where the first equation stems from that the Transformation we have got from the PnP
+transforms between world (Here its the previous camera world) coordinates to the camera 
+coordinates means that the camera location at the previous camera coordinate, denoted by
+[x, y, z], is mapped by this transformation to [0, 0, 0] as the camera placed in the 
+origin in its own coordinates system.
+
+#### Localization - make it all together
+
+Now we can 
 
 
 ## Back to the Bundle Adjustment
