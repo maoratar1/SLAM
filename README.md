@@ -233,6 +233,21 @@ the tracking process is done as follows:
 3. Find matches between left0 and left1 images
 4. Return matches that are in all 3 lists.
 
+Example of tracking:
+
+<img src=README_Images/DeterministicApproach/4PointTracking.png width="500" height="350">
+
+###### Implementation
+The tracking process is done by the following function:
+```python
+find_features_in_consecutive_frames(
+                                left0_kpts, left0_dsc, right0_kpts,
+                                pair0_matches, pair0_rec_matches_idx,
+                                left1_kpts, left1_dsc, right1_kpts,
+                                pair1_matches, pair1_rec_matches_idx)
+```
+
+
 ## Back to the Bundle Adjustment
 Because there is some noise in our measures, we want to add an uncertainty factor
 to this process so getting more formally, in the bundle adjustment algorithm
