@@ -377,7 +377,94 @@ coordinates means that the camera location at the previous camera coordinate, de
 [x, y, z], is mapped by this transformation to [0, 0, 0] as the camera placed in the 
 origin in its own coordinates system.
 
-#### Localization - make it all together
+-------
+Before moving along to the trajectory estimation lets strength our PnP model with the `RANSAC` 
+method.
+
+#### RANSAC
+RANSAC, shortcut of Random Sample consensus is an algorithm that wish to estimate the 
+parameters of a mathematical model from a data containing outliers by using iterative method. 
+This method is based the idea that by repeated drawing point we except to draw a set of point
+which contains inliers only. The way we choose the best set of points is that after 
+computing our model we "check" (depends on the model) how many points supports this model,
+and the one who have the bigger set is the chosen one.  
+
+Here, our mathematical model which we wish to model is the transformation between two frames 
+using the PnP algorithm. So we use RANSAC to model our transformation better by reducing the
+chance using outlier measure in the modeling. But actually we earn another thing, at the 
+end of the RANSAC operation we get the transformation between the frames and we get the 
+subgroup of feature that support this trans, so we can trust that they are inliers. That way, 
+we have got **another inliers' rejection policy**.
+
+So, how does that works? There are two main things which RANSAC method is built from:
+1. Iteration number.
+2. Operations performed in each iteration.
+
+**1. Iteration number** 
+
+For the iteration number, there is basically two methods. The one is defining some constant 
+number of iteration and the second is defining two parameters of evaluating the process and
+calculate the number of iteration needed by them. One parameter is the `probability` of not getting
+an outlier we wish to have and the second is the data's `outliers percentage` we call it 
+"Online estimation ransac". In my project I used the second option.
+
+Now we will talk about the way we estimate our number of iteration as a function of the 
+two parameters that mentioned above, the probability of not getting an outlier, and the 
+outlier percentage. We want a set of points which include inliers only. Denote with 'e' 
+the real probability of being an outlier and 's' the number of points in the set. The 
+probability of being drawing a set that has only inliers is (1 - e)^s thus the probability
+of drawing a set that contains, at least, one outlier is 1 - (1 - e)^s. So, with N1 iteration, 
+the probability of getting at least one outlier in the all N1 iteration is (1 - (1 - e)^s )^N1.
+Now, we denote with P the desired probability we want that our model will get only inliers, so
+1 - P is the desired probability of getting at least one outlier thus want that the 'real' 
+probability of getting at least one outlier will be lower than 1 - P:
+
+<img src=README_Images/DeterministicApproach/RansacIter.png width="500" height="160">
+
+In practice, we don't know the outliers' percentage of our data, so we estimate e online. That
+Means that we raise N1 at each iteration until it will be hold the inequality mentioned above.
+
+
+A little remark about computing the outliers percentage at each iteration. 
+In fact, we don't know the outliers' percentage, and we assume that in every
+iteration there are some inliers that are outliers and vice versa, 
+therefore we use an estimation for the outliers and inliers percentage for each iteration. 
+In each iteration we sum, separately, all the outliers and inliers we have got and we compute
+the outliers' percentage by a regular mean.
+
+```python
+accum_outlrs_num += num_points - num_supp  # # accum for accumulated
+accuum_inliers_num += num_supp
+outliers_perc = min(accum_outliers_num / (accum_inliers_num + accum_outliers_num), outliers_perc)
+```
+> `outliers_perc` is the parameter of the outliers percentage. Since we are using an estimation 
+that in expectation it equals to the real outliers percentage but there maybe some iterations
+that this estimation is totally wording and we get percentage that is bigger than one what can
+cause a big demage to the iteration number estimation we will mention below.
+
+**2. Operations performed in each iteration**
+
+At each iteration:
+1. Drawing a set of pixels at the frame '1' left image.
+2. Compute the transformation using `P4P`
+3. Inliers detection - `Consensus match` method
+4. Save the transformation and the supporters set if it's the best.
+
+At the end of that iteration:
+1. Compute the transformation using the inliers set by `PnP`
+
+> Notice: At the first iteration we use P4P and at the last one we use PnP with more points.
+
+The last issue we have in the Ransac is the `Consensus match` in step 3. As mentioned above,
+every RANSAC method includes the step of checking the supporters of the specific modeling, In
+my code is the Consensus match. 
+
+#### Consensus match
+
+
+
+
+### Localization - make it all together
 
 Now we can 
 
