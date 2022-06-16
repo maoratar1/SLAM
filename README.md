@@ -3,11 +3,9 @@ This project were taken under the course
 "Computer vision based navigation" - 67604 that was passed at the 
 Hebrew university of jerusalem at the year 2023 by Mr David Arnon and Dr 
 Refael Vivanti.
-This is my summarize in hebrew for te course:
-[Course summarize](http://www.github.com)
+This is my Hebrew summarize the course:
+[Course summarize](https://drive.google.com/drive/u/1/folders/1XPtAsZjeVMo1K5_r3bGYj4PQDSaTMOQ7)
 
->It should be noted that all images that I had not mentioned their source, are images
-> from the Course.
 
 ## tl;dr
 
@@ -72,7 +70,7 @@ we can see at the following image:
 
 <img src=README_Images/BundleAdjustmentPart/BundleStructure.png width="300" height="200">
 
-> Thanks to Courtesy of Ackermann
+> Courtesy of Ackermann
 
 
 So we want to fit the bundles, means that we want that all cameras and landmarks
@@ -105,10 +103,22 @@ A point cloud is a map that tells us about every coordinate in the world
 if there is some object in that place, but it does not tell us if there is **no**
 object there.
 
-In order to create a point cloud we will use 2 concepts: `Triangulation` and `Matching`
+In order to create a point cloud we will use 2 concepts: `Images Matching` and `Triangulation`
 
-#### Matcing
-`Matching` is the process of
+#### Images matching
+Images matching is the process of finding matching key points between two images.
+The process of matching include 3 steps:
+1. Features detection.
+2. Feature description.
+3. Feature matching.
+
+There are several algorithms for the first two steps as AKAZE, SIFT, ORB, and others.
+In my project I made comparisons between the first three , and we finally chose AKAZE.
+
+For the 3rd step we had tried Brute force and knn using significance test. Finally
+we use the brute force method due to better results and with a run time payment of
+40 sec only.
+
 
 #### Triangulation
 In order to create a map of the world we can use the operation called `Triangulation`.
@@ -458,7 +468,7 @@ At the end of that iteration:
 Here we can see the influence of the RANSAC on finding supporters. Each column is 
 left 0 and left1 images:
 
-<img src=README_Images/DeterministicApproach/RansacCompareSupporters.png width="900" height="290">
+<img src=README_Images/DeterministicApproach/RansacCompareSupporters.png width="900" height="330">
 
 ###### Implementation
 PnP using RANSAC function:
@@ -486,7 +496,31 @@ what makes in a very strong outliers' rejection.
 
 <img src=README_Images/DeterministicApproach/ConsensusMatch.png width="350" height="280">
 
-> Courtest of David Arnon and Refael Vivanti
+> Courtesy of David Arnon and Refael Vivanti
+
+**Mathematical remark**. Notice that the 3d point is at the left0 camera coordinates
+so in order to project it all 4 cameras we need to find each camera's projection matrix.
+The projection matrix depends on the intrinsic and extrinsic matrices. The intrinsic
+one is the same among all 4 and there is a difference at the extrinsic matrices.
+The left0's extrinsic matrices is simply [I | 0], right0 was given to us by 
+Kitty, left1 founded by PnP, so it remains to calculate the right1 only.
+We can calculate the right1 by composing the transformation between right1 and
+left 1, that we know by Kitty, with the transformation between left0 and left1.
+
+<img src=README_Images/DeterministicApproach/composeCam.png width="330" height="90">
+
+> Courtesy of David Arnon and Refael Vivanti
+
+And mathematically speaking:
+
+<img src=README_Images/DeterministicApproach/ComposeCamMath.png width="430" height="250">
+
+This can be done at the following function:
+```python
+from utils.utills import compose_transformations
+# Compute second @ first
+compose_transformations(first_ex_mat, second_ex_mat)
+```
 
 Consensus match code:
 
@@ -496,22 +530,121 @@ consensus_match(calib_mat,left1_ex_mat, right1_to_left1_ex_mat,
                 world_p3d_pts, left1_matches_coor, right1_matches_coor,
                 acc)
 ```
-
 > This function returns a boolean list where the ith element indicate whether the ith
-> element is a supporter or not
+> key point is a supporter or not
 
 ### Localization - make it all together
-Now, we can create a trajectory estimation. For every frame i we can compute is
-relative transformation to its previous frame so we get a list of relative 
+Now we can create a trajectory estimation. For every frame i we can compute its
+relative transformation to its previous frame, so we get a list of relative 
 transformation, by composing them all we will get a **global** transformations,
 were global means in relate to the first camera, thus we can compute each camera's
 location. We put all together, and we get the following trajectory estimation:
 
 
+<img src=README_Images/DeterministicApproach/InitialEstimate.png width="500" height="360">
+
+> We have tried several options that you can find at the "Comparisons" part.
+
+----
+Now that we have in hand the initial estimation we can move on to solve the 
+Bundle Adjustment, but, as we said, the Bundle Adjustment is build from camera
+that sees several landmarks and landmarks that seen by several cameras so we 
+need to create a connection between cameras and landmarks. Till now, we tracked 
+feature between consecutive frame, now we extend our feature tracking across
+multiple frames and implement a suitable database for the features. 
+<img src=README_Images/Database/featureTracking.png width="640" height="300">
+
+> Courtesy of David Arnon and Refael Vivanti
+
+## Building feature's tracking Database
+So, we want to extend our feature tracking ability from consecutive frames 
+to multiple frames tracking. We will do this inductively, given the ith frame
+we track features between it and its previous frame and now for each feature 
+there are 2 options:
+1. If it's a new feature - create a new track.
+2. If it's an old feature - connect it to the existing track.
+
+At the end of this process we get tracks were each track corresponds to a 3d point
+in the world, which we called it landmark. 
+
+In addition, for every track we save the frames it appears at and for 
+each frame we save all tracks it sees. Thus we have the suitable suit for the 
+database.
+
+###### Implementation
+For this mission we defined several classes:
+1. `DataBase`
+2. `Feature`
+3. `Frame`
+4. `Track`
+
+All those classes are stored at the `DataBaseDirectory` directory.
+
+In order to create a `DataBase` object we need to do preliminary calculation
+of computing all the features tracked between consecutive frames. This can be
+done by function we had already for creating the trajectory's initial estimation.
+
+```python
+from utils.utills import find_features_in_consecutive_frames_whole_movie
+# M1 = [I | 0]
+find_features_in_consecutive_frames_whole_movie(first_left_ex_cam_mat=M1)
+```
+> This function returns 4 objects. The first is a list of tuples of lists where
+> each tuple represent the features between two consecutive frames where the lists
+> in the tuple are sharing indexes, means that the ith feature in the first list
+> match to the ith feature in the second list. The second object is the inliers 
+> percentage that of key frames that been tracked. The third  and the last
+> objects are the global and the relative transformations of each frame.
+ 
+Now, we can create a database object:
+```python
+from DataBaseDirectory.DataBase import DataBase
+db = DataBase(consecutive_frame_features, inliers_percentage, global_trans,
+              relative_trans)
+```
+Running that row will run the DataBase's object method `create_db` that performs
+the inductive process of connecting tracks that is actually done by the following
+function:
+```python
+db.find_tracks_between_consecutive_frame(first_frame_features_obj, 
+                                         second_frame_features_obj,
+                                         first_frame_id, second_frame_id)
+```
+
+### Evaluating tracking quality
+We defined several measures for evaluating our tracking quality:
+
+#### Tracking statistics
+| Tracking statistics            | header |
+|--------------------------------|--------|
+| Total tracks number            | 280077 | 
+| Frames number                  | 3450   |
+| Max track                      | 126    | 
+| Min track                      | 2      | 
+| Mean track length              | 5.24   |
+| Tracks number in average frame | 424.99 |
+
+#### Example of tracking with length of 10
+
+<img src=README_Images/Database/track.png width="250" height="750">
+
+> For convince we cropped the image to 100X100 for better view.
+
+#### Connectivity graph
+This graph represents, For each frame, the number of tracks outgoing
+to the next frame, Means the number of tracks on the frame with links
+also in the next frame.
+<img src=README_Images/Database/Connectivity.png width="750" height="360">
+
+#### Track length histogram
+<img src=README_Images/Database/Tracklengthhistogram.png width="500" height="310">
+
+-----
+Now we have our database in hand we can continue to main algorithm, the Bundle Adjustment.
 
 ## Back to the Bundle Adjustment
 Because there is some noise in our measures, we want to add an uncertainty factor
-to this process so getting more formally, in the bundle adjustment algorithm
+to this process. Being more formally, in the bundle adjustment algorithm
 given a set of measures, denoted by Z, we want to find
 a set of cameras, denoted by C, and a set of landmarks, denoted by Q, 
 that maximize the conditional probability of C,Q under the condition of Z.
@@ -571,6 +704,26 @@ So actually we are converting our bayesian graph to the factor graph:
 <img src=README_Images/BundleAdjustmentPart/BayedianGraphToFactorGraph.png width="600" height="200">
 
 > Courtesy of David Arnon and Refael Vivanti 
+
+
+#### Factor graph and GTSAM library
+In our project, We use GTSAM - Georgia Tech Smoothing and Mapping Library 
+for factor graph optimization.
+
+The main thing we need to notice is that, until now we defined a transformation
+, an extrinsic camera matrix, of a camera as a mapping from the world coordinates
+to camera coordinates. At GTSAM things works opposite, a transformation, or
+as it called in GTSAM a `Pose3`, is a mapping from the camera coordinates to
+the world coordinates. So in order to work with gtsam we convert our
+transformation's directions. Mathematically we can do this by: 
+
+<img src=README_Images/BundleAdjustmentPart/GtsamTrans.png width="480" height="230">
+
+This is done by the function:
+```python
+from utils.utills import convert_ex_cam_to_cam_to_world
+cam_to_world_ex_cam = convert_ex_cam_to_cam_to_world(world_to_cam_ex_cam)
+```
 
 #### Bundles "windows"
 Due to the fact that solving the Least square problem using the Levenberg-Marquardt 
@@ -646,9 +799,9 @@ Adding cameras is quite simple and does not require any special approach, we
 only need to compute the cameras relative to the first bundle transformation
 that can be done easily by composing the current camera's global transformation with
 the first camera's inverse global transformation.
-Adding landmarks is not as adding camera where, unlike adding cameras, 
+Adding landmarks is not as adding cameras that, unlike adding cameras, 
 some approaches may give us better results.
-In our implementation we added the graph landmarks that appears in all
+In our implementation we added the graph landmarks that appears in *all*
 bundle's cameras, so we are passing through the tracks which appears at the first frame
 and chose the ones that their last frame is greater than the last bundle's key frame
 or equals to it. Now, we can create a `factor` of the factor graph.
@@ -726,7 +879,7 @@ the `Bundle Adjustment` algorithm. The red one is the cameras poses after perfor
 optimization and the one in cyan is the ground-truth trajectory as received from
 Kitty's benchmark.
 
-<img src=README_Images/BundleAdjustmentPart/BundleResult.png width="500" height="420">
+<img src=README_Images/BundleAdjustmentPart/BundleResult.png width="560" height="420">
 
 ---
 Until now, we have got a pretty good estimation for the car trajectory, It can be seeing
@@ -746,6 +899,10 @@ The basic concept is that when we find a loop we actually add another constraint
 to are graph and by finding good loops we can "repair" are trajectory retroactively.
 At the next rows we will talk about how we find a loop, but before lets defined 
 the graph that we will search loops at it which called `Pose Graph`.
+
+<img src=README_Images/LoopClosure/LoopClosure.png width="300" height="300">
+
+> Courtesy of Agrawal, Konolige
 
 #### Pose Graph
 Pose graph is no other than Factor Graph where:
@@ -895,8 +1052,6 @@ finds a shortest path between them to compute the relative covariance for
 the mahalanobis distance calculation, and we choose only the 3 best 
 cameras of those who passed the distance threshold
 
-
-
 #### Second and third step - Candidates validation and factors evaluation
 Now that we have some good candidates we are ready to preform the consensus match
 method. On every candidate, we preform the consensus match method that tells us the
@@ -945,18 +1100,68 @@ This process is done by:
  
 # performing loop closure for the whole pose graph
  pose_graph.loop_closure()
-
 ```
 
+### Results
+Finally, we get the following result:
+
+<img src=README_Images/LoopClosure/LoopTraj.png width="560" height="420">
+
+
+## Trajectory state over the process
+
+
+
+
+# Comparisons while working
+## intial estimating trajectory
+### Sift, Akaze, Brute Force, Knn, Flann
+<img src=README_Images/DeterministicApproach/Comparisons/AkazeSift.png width="800" height="1000">
+
+## Bundle adjustment
+### Bundle percentage for key frame choosing
+We check several percentages for the key frame choosing, here we represent the
+percentage and it's influence at the bundle trajectory:
+
+#### 0.65
+<img src=README_Images/BundleAdjustmentPart/Comparisons/0.65.png width="400" height="300">
+
+#### 0.7
+<img src=README_Images/BundleAdjustmentPart/Comparisons/0.7.png width="400" height="300">
+
+#### 0.8
+<img src=README_Images/BundleAdjustmentPart/Comparisons/0.8.png width="400" height="300">
+
+#### 0.85
+<img src=README_Images/BundleAdjustmentPart/Comparisons/0.85.png width="400" height="300">
+
+#### 0.9
+<img src=README_Images/BundleAdjustmentPart/Comparisons/0.9.png width="400" height="300">
+
+
+So we check the values at [0.855, 0.856, 0.857, 0.858, 0.859].
 ### Results
 
 <img src=README_Images/BundleAdjustmentPart/BundleWindows.png width="400" height="140">
 
+## Loop Closure
 
+By manually examining the trajectory we have found that there are 3 possible areas
+for loops as follows:
 
+<img src=README_Images/LoopClosure/SuspectedLoops.png width="500" height="400">
 
+So, we had printed cameras indicators at the first range, and we have got:
 
+<img src=README_Images/LoopClosure/189and9.png width="570" height="440">
 
+We can see that 189 and 9 are close, indeed when we look at their matching percentage
+we get 89% percentage:
+
+<img src=README_Images/LoopClosure/189and9per.png width="600" height="450">
+
+Thus, we find all suspected areas for loop and find the mahalanobis distance and the inliers percentage
+accordingly
 
 # Helpers for file
 
