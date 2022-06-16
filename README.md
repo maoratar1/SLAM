@@ -113,11 +113,38 @@ The process of matching include 3 steps:
 3. Feature matching.
 
 There are several algorithms for the first two steps as AKAZE, SIFT, ORB, and others.
-In my project I made comparisons between the first three , and we finally chose AKAZE.
+In my project I made comparisons between the first three , and we finally chose `AKAZE`.
 
-For the 3rd step we had tried Brute force and knn using significance test. Finally
+For the 3rd step we had tried Brute force and knn using significance test. Finally,
 we use the brute force method due to better results and with a run time payment of
-40 sec only.
+40 sec only. At the Brute force matching we use the `Hamming norm` which is 
+more suitable for AKAZE which its feature vectors are binary vectors.
+
+This process can be done by the following code:
+```python
+from utils.utills import detect_and_match
+detect_and_match(left_img, right_img)
+```
+> This function returns kpts, dsc anf matches list for those images.
+> 
+> There is some similar functions that differ by parameters and other functionality
+> for other purposes.
+
+Another thing we should mention is the `rectification test`. Each frame consists
+of two stereo camera means that for matching key points would be with the same 
+y-axis value. Thus, we can produce a nice outliers' rejection policy - a match that
+it's left_y and right_y is not equal (up to some threshold) is considered as an 
+outlier.
+
+```python
+from utils.utills import rectified_stereo_pattern_rej
+rectified_stereo_pattern_rej(img1_kpts, img2_kpts, matches)
+```
+
+> This function returns the inliers and outlines indexes at the original `matches` list
+
+Now, that we have the abbility to match betweeen to key points at the images, we 
+can perform the `Triangulation` operation.
 
 
 #### Triangulation
