@@ -55,7 +55,8 @@ In my project we use only the black and white stereo cameras.
 KITTI's supplies for us:
 - Cameras' intrinsic matrices between right and left.
 - Cameras' extrinsic matrices (Where the left camera is at the origin)
-- 3450 Frames
+- 3450 Frames.
+- Vehicle location through the ride.
 
 ### Cameras' matrices
 <img src=README_Images/KITTI/ExCam.png width="230" height="180" align="right">
