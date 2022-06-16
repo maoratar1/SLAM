@@ -455,18 +455,58 @@ At the end of that iteration:
 
 > Notice: At the first iteration we use P4P and at the last one we use PnP with more points.
 
+Here we can see the influence of the RANSAC on finding supporters. Each column is 
+left 0 and left1 images:
+
+<img src=README_Images/DeterministicApproach/RansacCompareSupporters.png width="900" height="290">
+
+###### Implementation
+PnP using RANSAC function:
+```python
+online_est_pnp_ransac(PNP_NUM_PTS, pair0_p3d_pts,
+                      M1, left0_matches_coor,
+                      M2, right0_matches_coor,
+                      left1_matches_coor,
+                      M2, right1_matches_coor,
+                      K, acc=SUPP_ERR)
+```
+
+----
 The last issue we have in the Ransac is the `Consensus match` in step 3. As mentioned above,
 every RANSAC method includes the step of checking the supporters of the specific modeling, In
 my code is the Consensus match. 
 
 #### Consensus match
+So far, we have a tracking between 2 frames in the all 4 images, so we use this great idea to 
+define a transformation supporter. Given a transformation, computed by the P4P algorithm, we
+go through all the 3d points and projects them on frame 1 and check if its distance
+from the feature we tracked is small, up to some threshold. If so, we define it as a supporter.
+By Defining a supporter that way we get that a supporter is a feature that agree in 4 images
+what makes in a very strong outliers' rejection.
 
+<img src=README_Images/DeterministicApproach/ConsensusMatch.png width="350" height="280">
 
+> Courtest of David Arnon and Refael Vivanti
 
+Consensus match code:
+
+```python
+from utils.utills import consensus_match
+consensus_match(calib_mat,left1_ex_mat, right1_to_left1_ex_mat, 
+                world_p3d_pts, left1_matches_coor, right1_matches_coor,
+                acc)
+```
+
+> This function returns a boolean list where the ith element indicate whether the ith
+> element is a supporter or not
 
 ### Localization - make it all together
+Now, we can create a trajectory estimation. For every frame i we can compute is
+relative transformation to its previous frame so we get a list of relative 
+transformation, by composing them all we will get a **global** transformations,
+were global means in relate to the first camera, thus we can compute each camera's
+location. We put all together, and we get the following trajectory estimation:
 
-Now we can 
 
 
 ## Back to the Bundle Adjustment
