@@ -1,4 +1,4 @@
-# Slam project
+# SLAM project
 This project were taken under the course 
 "Computer vision based navigation" - 67604 that was passed at the 
 Hebrew university of jerusalem at the year 2023 by Mr David Arnon and Dr 
@@ -8,62 +8,94 @@ This is my Hebrew summarize the course:
 
 
 ## tl;dr
-
-
-## Overview
-Slam, shortcut of **S**imultaneous **l**ocalization **a**nd **m**apping, 
+Slam, shortcut of **S**imultaneous **L**ocalization **A**nd **M**apping, 
 is a family of problems that, for a moving object, 
-try to localize it and creates a world mapping.
-I accomplish this mission using the bundle adjustment algorithm which is 
-an algorithm for solving the Slam issue. 
-In this project I implement, that in some meaning is a refined version for the
-"Frame slam" article ~~Add Link~~.
+try to find its location map the world.
+We accomplish this mission using the `Bundle Adjustment` algorithm which is 
+an algorithm for solving the SLAM problem. 
+This project is an implementation of, and in some meaning, a refined version,
+the [Frame SLAM](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=hczHVxEAAAAJ&citation_for_view=hczHVxEAAAAJ:WF5omc3nYNoC&tzom=-120) 
+article.
 
-In this project we are using the following concepts and others:
-- Bundle Adjustment
-- Loop closure
-- triangulation
-- pnp
-- ransac
-- consensus match
+The project is build from, basically, 5 main steps:
+1. Creating first trajectory's deterministic estimation.
+2. Building Features' tracking database.
+3. Performing Bundle Adjustment optimization.
+4. Building a Pose graph.
+5. Performing Loop Closure.
 
-The data I am using is of Kitti's benchmark 
+In this project we are using the following concepts and  many others:
+- Bundle Adjustment.
+- Loop Closure.
+- Feature's detecting and description.
+- Triangulation.
+- PnP.
+- RANSAC.
+- Consensus match.
+- SVD.
+- Least Square.
+- Camera matrices: Extrinsic and Intrinsic.
+- Outliers rejection policies.
+- Factor graph.
+
+
+The data We are using is of Kitty's benchmark.
 In this project we are trying to estimate a trajectory of a moving car
-that has stereo camera on its roof, and it takes photos for some time.
+that has a stereo camera on its roof, and it takes photos every period of time.
 
-~~Add some terms~~
-- world coordinates
-- cameras as poses of the car
-- mapping - points cloud
+## KITTI's Benchmark
 
-
-## Kitti's Benchmark
-http://www.cvlibs.net/datasets/kitti/
-
-Kitty is a ~~Add content about this company~~ company. 
-
-Kitty uses a car includes some sensors that drives along some streets
-in Germany . The sensors are stereo camera (color and black-white), gps,
+KITTI uses a car, includes some sensors, that drives along some streets
+in Germany. The sensors are stereo camera (color and black-white), gps,
 lidar and some other.
-This benchmark supplies a lot of ground truth which allows us to 
+[KITTI's benchmark](http://www.cvlibs.net/datasets/kitti/) supplies a lot of ground truth which allows us to 
 compare are results of our algorithms.
-In my project I use only the black and white stereo cameras.
+In my project we use only the black and white stereo cameras.
 
-~~Add kitti's supplies~~
-- Intrinsic cameras
-- Extrinsic cameras Left and right
+KITTI's supplies for us:
+- Cameras' intrinsic matrices between right and left.
+- Cameras' extrinsic matrices (Where the left camera is at the origin)
 - 3450 Frames
 
-~~Add explanation on camera matrices~~
+### Cameras' matrices
+<img src=README_Images/KITTI/ExCam.png width="230" height="180" align="right">
+Every camera has two matrices, extrinsic and intrinsic.
+
+The extrinsic matrix used for 
+convert between two coordinates system, the "world" coordinates and the camera coordinate
+system when by saying "camera coordinates" we mean to a system where the camera is 
+at the origin, x-axis point to right, y_axis points down and the z axis points to the front.
+The extrinsic matrix is a 4X3 matrix which is built from two element, 
+Rotation and translation. and can be written as [R | t] where R is the rotation matrix
+and t is retranslation matrix. 
+
+The intrinsic camera matrix is used for projecting a 3d point at the **camera coordinate**
+to the camera's image plane. It's includes the inner parameters of the camera such as 
+the image coordinates (top left or centered) focal length at pixel units, Skew and 
+Distortion.
+
+> We will denote the camera's intrinsic matrix as K and the extrinsic's as M1
+> for the left camera and M2 for the right camera.
+
+#### KITTI's cameras
+Those are KITTI's left and right camera extrinsic matrices and intrinsic matrix.
+
+<img src=README_Images/KITTI/KITTIcameras.png width="" height="">
+
+
+### Projecting matrix
+For those 2 matrices we can build a matrix which maps a 3d point at the world coordinates
+to the image plane. This matrix is simply, K * [R | t]. [R | t] maps the point 
+from the world coordinates to camera's coordinates and K project the point to the image plane.
 
 ## Bundle Adjustment - First glimpse
 As mentioned above, we are doing localization and mapping, localization
-is finding object's location in "world" ~~Explain about it~~ coordinates
+is finding object's location in "world" coordinates
 and mapping is creating some mapping of object's in the world.
 
 Every camera in the whole trajectory Sees several objects (we call them landmarks)
 in the world and every object in the world is seeing by several cameras. 
-By saying "Seeing by a camera" we means that it can be projected to the camera plane.
+By saying "Seeing by a camera" we mean that it can be projected to the camera plane.
 So we can look at this structure as "Bundles" that suppose to fit perfectly. As 
 we can see at the following image:
 
@@ -919,19 +951,27 @@ the key frames only, each one will be a vertex in a new `Factor Graph`
 called `Pose Graph`.
 
 ## Loop closure
-### Theory
+### Inroduction
 Loop closure is an algorithm for finding "loops" at a given trajectory graph. 
 By saying "loop" we mean two cameras that has the same pose (up to some distance).
 The basic concept is that when we find a loop we actually add another constraint
 to are graph and by finding good loops we can "repair" are trajectory retroactively.
-At the next rows we will talk about how we find a loop, but before lets defined 
-the graph that we will search loops at it which called `Pose Graph`.
 
 <img src=README_Images/LoopClosure/LoopClosure.png width="300" height="300">
 
 > Courtesy of Agrawal, Konolige
 
-#### Pose Graph
+We can look at this process of finding loop as puzzle's closing circle. We are
+building the puzzle frame one after the other and when we get the loop we connect
+each other, and we close the loop.
+
+<img src=README_Images/LoopClosure/puzzle.png width="400" height="200">
+
+> Applying Information Theory to Efficient SLAM - M.Chli 
+-----
+At the next rows we will talk about how we find a loop, but before lets defined 
+the graph that we will search loops at it which called `Pose Graph`.
+### Pose Graph
 Pose graph is no other than Factor Graph where:
 - Vertex are camera poses
 - Edges are relative pose between two edges.
@@ -965,7 +1005,7 @@ with euler angles.
 
 Now that we have the pose graph in our hands we can move on to find loops.
 
-### Finding loops
+## Finding loops
 In this process of finding loops we will actually need to find a transformation
 between two cameras. As mentioned, this is done by the `consensus match`
 method which is heavy operation. So, for avoiding perform this operation, for
@@ -1034,7 +1074,7 @@ mahalanobis_dist_cand = pose_graph.find_loop_cand_by_mahalanobis_dist(cur_cam)
 
 ```
 
-#### Finding the shortest path
+### Finding the shortest path
 
 The next issue is to find the shortest path in the graph. For that purpose, we 
 convert our Pose Graph to a "Vertex" representation graph that represent 
@@ -1052,7 +1092,7 @@ a dijkstra implementation with `Min Heap` class that we create and can be found
 at the `utils` directory. 
 
 
-##### Edge's weighting
+### Edge's weighting
 As we said before, we want to the find the shortest path in terms of the 
 "smallest" covariance obtained. There are several ways to define a "size"
 of a matrix:
@@ -1114,7 +1154,7 @@ loop_prev_frames_tracks_tuples = pose_graph.find_loop_closure(cur_cam)
 again `loop_prev_frames_tracks_tuples` contains tuples of previous keyframes and
 tracks list.
 
-### Optimization process
+## Optimization process
 So we know how to find loops. Now we left with performing this process along the
 whole pose graph. We start with the first key frames and for every key frame, we
 find loops candidate, if we found loops, we add it to the factor and vertex graph and 
@@ -1129,7 +1169,7 @@ This process is done by:
  pose_graph.loop_closure()
 ```
 
-### Results
+## Results
 Finally, we get the following result:
 
 <img src=README_Images/LoopClosure/LoopTraj.png width="560" height="420">
