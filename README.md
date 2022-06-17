@@ -8,10 +8,6 @@ for the course.
 
 
 ## tl;dr
-is the computational problem of constructing or updating a map of an
-unknown environment while simultaneously keeping track
-of an agent's location within it
-
 SLAM, shortcut of **S**imultaneous **L**ocalization **A**nd **M**apping, 
 is a computational problem of constructing a map of an unknown
 environment while keeping track of an agent's location within it.
