@@ -1003,9 +1003,9 @@ Kitty's benchmark.
 <img src=README_Images/BundleAdjustmentPart/BundleResult.png >
 
 ---
-Until now, we have got a pretty good estimation for the car trajectory, It can be seeing
+So far, we have got a pretty good estimation for the car trajectory, It can be seeing
 that the red trajectory is sitting almost perfectly at the cyan one besides some area
-that it seems that the driving car had returned to the same road but the Bundle Adjustment
+that it seems that the car had returned to the same road but the Bundle Adjustment
 algorithm shows it as a different road. For making thing "tight" we'll add our final,
 very powerful one, algorithm called "Loop closure", And from now one we are throwing 
 away all are frames, that are not key frames, and landmarks, so we are left with
@@ -1013,7 +1013,6 @@ the key frames only, each one will be a vertex in a new `Factor Graph`
 called `Pose Graph`.
 
 ## Loop closure
-### Inroduction
 Loop closure is an algorithm for finding "loops" at a given trajectory graph. 
 By saying "loop" we mean two cameras that has the same pose (up to some distance).
 The basic concept is that when we find a loop we actually add another constraint
@@ -1052,14 +1051,14 @@ that "asks" what is the probability of one pose to be the other one,
 After we will have that error, per edge, we can represent the total graph error
 by the mahalanobis distance of that error from zero:
 
-<img src=README_Images/BundleAdjustmentPart/PoseGraphError.png width="340" height="60">
+<img src=README_Images/BundleAdjustmentPart/PoseGraphError.png >
 
 
 Here we calculate "How much two poses are closer" and by recalling that each pose
 can be converted to a transformation matrix and vice versa we can define the following 
 "metrix" :
 
-<img src=README_Images/BundleAdjustmentPart/PoseGraphErrorDefined.png width="490" height="60">
+<img src=README_Images/BundleAdjustmentPart/PoseGraphErrorDefined.png>
 
 
 where `transformationToVector` convert a transformation matrix to a pose vector
@@ -1078,7 +1077,7 @@ estimation
 2. Validate candidates by consensus match
 3. Calculate edges and factors
 
-#### First step - Find candidates by geometric intersection 
+### First step - Find candidates by geometric intersection 
 as mentioned,  we defined the error as the mahalanobis distance between two poses,
 for calculating this distance we will need to calculate the 
 relative transformations, between those poses and the relative covariance
@@ -1096,7 +1095,7 @@ Relative covariance estimation - There are two options:
 2. There is more than one path - let's assume two only.
 
 At the first case, we can use the covariance role which says that : 
-<img src=README_Images/BundleAdjustmentPart/SumCov.png width="570" height="60">
+<img src=README_Images/BundleAdjustmentPart/SumCov.png >
 
 Where x and y represents our poses. We have to say that, of course, that summing
 poses is not doing by vector summing but because we are dealing with small bundles, 
@@ -1111,8 +1110,7 @@ At the second case, where we have two paths between C_i and C_n, its actually
 means that there are two estimation for the C_n - one from the first path
 and one from the other path. Here we can look at the next covariance role:
 
-<img src=README_Images/BundleAdjustmentPart/MultCov.png width="585" height="110">
-
+<img src=README_Images/BundleAdjustmentPart/MultCov.png >
 
 Since those measurements are independent we can look at their intersection 
 probability as a multiplication, and in that case the covariance is given above.
@@ -1136,12 +1134,13 @@ mahalanobis_dist_cand = pose_graph.find_loop_cand_by_mahalanobis_dist(cur_cam)
 
 ```
 
-### Finding the shortest path
+#### Finding the shortest path
 
-The next issue is to find the shortest path in the graph. For that purpose, we 
+The next issue is to find the shortest path between two poses at the graph. 
+For that purpose, we 
 convert our Pose Graph to a "Vertex" representation graph that represent 
-the graph with adjecancy matrix list, so we can apply the `Dijkstra`'s version
-that includes `Min Heap` so we get a total run time of O(E * Log V)
+the graph with adjacency matrix list, so we can apply the `Dijkstra`'s version
+that includes `Min Heap` and we get a total run time of O(E * Log V)
 
 ```python
 # Find the shortest path and estimate its relative covariance
@@ -1154,7 +1153,7 @@ a dijkstra implementation with `Min Heap` class that we create and can be found
 at the `utils` directory. 
 
 
-### Edge's weighting
+#### Edge's weighting
 As we said before, we want to the find the shortest path in terms of the 
 "smallest" covariance obtained. There are several ways to define a "size"
 of a matrix:
@@ -1216,7 +1215,7 @@ loop_prev_frames_tracks_tuples = pose_graph.find_loop_closure(cur_cam)
 again `loop_prev_frames_tracks_tuples` contains tuples of previous keyframes and
 tracks list.
 
-## Optimization process
+### Optimization process
 So we know how to find loops. Now we left with performing this process along the
 whole pose graph. We start with the first key frames and for every key frame, we
 find loops candidate, if we found loops, we add it to the factor and vertex graph and 
@@ -1235,11 +1234,6 @@ This process is done by:
 Finally, we get the following result:
 
 <img src=README_Images/LoopClosure/LoopTraj.png width="560" height="420">
-
-
-## Trajectory state over the process
-
-
 
 
 # Comparisons while working
@@ -1292,21 +1286,5 @@ we get 89% percentage:
 Thus, we find all suspected areas for loop and find the mahalanobis distance and the inliers percentage
 accordingly
 
-# Helpers for file
 
-###### Implementation
-Calling the following rows will 
-
-```python
-# comments
-Code
-
-```
-
-#### images
-<img src=README_Images/BundleAdjustmentPart/BundleWindows.png width="400" height="140">
-
-
-## Data base
-knn - time 7:05 minutes
 
