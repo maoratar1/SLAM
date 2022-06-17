@@ -1,30 +1,35 @@
 # SLAM project
 This project were taken under the course 
-"Computer vision based navigation" - 67604 that was passed at the 
-Hebrew university of jerusalem at the year 2023 by Mr David Arnon and Dr 
+"Computer vision based navigation" - 67604 that was given at the 
+Hebrew University of Jerusalem in 2023 by Mr David Arnon and Dr 
 Refael Vivanti.
-This is my Hebrew summarize the course:
-[Course summarize](https://drive.google.com/drive/u/1/folders/1XPtAsZjeVMo1K5_r3bGYj4PQDSaTMOQ7)
+This is my [Hebrew summary](https://drive.google.com/file/d/19_4wjf477zzoSyrLiXZ66g6sY3s-dHds/view?usp=sharing)
+for the course.
 
 
 ## tl;dr
-Slam, shortcut of **S**imultaneous **L**ocalization **A**nd **M**apping, 
-is a family of problems that, for a moving object, 
-try to find its location map the world.
+is the computational problem of constructing or updating a map of an
+unknown environment while simultaneously keeping track
+of an agent's location within it
+
+SLAM, shortcut of **S**imultaneous **L**ocalization **A**nd **M**apping, 
+is a computational problem of constructing a map of an unknown
+environment while keeping track of an agent's location within it.
 We accomplish this mission using the `Bundle Adjustment` algorithm which is 
-an algorithm for solving the SLAM problem. 
+an algorithm for solving SLAM. 
 This project is an implementation of, and in some meaning, a refined version,
-the [Frame SLAM](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=hczHVxEAAAAJ&citation_for_view=hczHVxEAAAAJ:WF5omc3nYNoC&tzom=-120) 
+the algorithm presented at the
+[Frame SLAM](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=hczHVxEAAAAJ&citation_for_view=hczHVxEAAAAJ:WF5omc3nYNoC&tzom=-120) 
 article.
 
-The project is build from, basically, 5 main steps:
-1. Creating first trajectory's deterministic estimation.
+The project is built from, basically, 5 main steps:
+1. Creating first trajectory's estimation using deterministic approach.
 2. Building Features' tracking database.
 3. Performing Bundle Adjustment optimization.
 4. Building a Pose graph.
 5. Performing Loop Closure.
 
-In this project we are using the following concepts and  many others:
+In this project we are using the following concepts and many others:
 - Bundle Adjustment.
 - Loop Closure.
 - Feature's detecting and description.
@@ -39,64 +44,83 @@ In this project we are using the following concepts and  many others:
 - Factor graph.
 
 
-The data We are using is of Kitty's benchmark.
+The data We are using is of KITTI's Benchmark Suite.
 In this project we are trying to estimate a trajectory of a moving car
-that has a stereo camera on its roof, and it takes photos every period of time.
+that has a stereo camera on its roof, and it is filming its travel route.
 
 ## KITTI's Benchmark
 
-KITTI uses a car, includes some sensors, that drives along some streets
-in Germany. The sensors are stereo camera (color and black-white), gps,
-lidar and some other.
-[KITTI's benchmark](http://www.cvlibs.net/datasets/kitti/) supplies a lot of ground truth which allows us to 
-compare are results of our algorithms.
-In my project we use only the black and white stereo cameras.
+KITTI uses a car, includes some sensors, travelling around several streets
+in Germany. The sensors are stereo camera (color and black-white), GPS and
+Lidar.
+[KITTI's benchmark](http://www.cvlibs.net/datasets/kitti/) 
+supplies a lot of ground truth which allows us to compare 
+are results of our algorithms.
+In our project we use only the black and white stereo cameras.
 
 KITTI's supplies for us:
 - Cameras' intrinsic matrices between right and left.
-- Cameras' extrinsic matrices (Where the left camera is at the origin)
+- Cameras' extrinsic matrices between left and right cameras 
+(Where the left camera is at the origin)
 - 3450 Frames.
-- Vehicle location through the ride.
+- Vehicle location during the ride.
+
+### Stereo camera
+KITTI uses stereo camera with two or more lenses with a separate image sensor or
+film frame for each lens. This allows the camera to simulate human binocular vision, 
+and therefore gives it the ability to capture three-dimensional images. So In our project 
+when we say `Frame` when mean two images, for the left and the right cameras.
 
 ### Cameras' matrices
-<img src=README_Images/KITTI/ExCam.png width="230" height="180" align="right">
 Every camera has two matrices, extrinsic and intrinsic.
 
-The extrinsic matrix used for 
-convert between two coordinates system, the "world" coordinates and the camera coordinate
-system when by saying "camera coordinates" we mean to a system where the camera is 
-at the origin, x-axis point to right, y_axis points down and the z axis points to the front.
-The extrinsic matrix is a 4X3 matrix which is built from two element, 
-Rotation and translation. and can be written as [R | t] where R is the rotation matrix
-and t is retranslation matrix. 
+#### Extrinsic matrix
+<img src=README_Images/KITTI/ExCam.png width="230" height="180" align="right">
 
-The intrinsic camera matrix is used for projecting a 3d point at the **camera coordinate**
-to the camera's image plane. It's includes the inner parameters of the camera such as 
-the image coordinates (top left or centered) focal length at pixel units, Skew and 
-Distortion.
+The extrinsic matrix used for 
+converting between two coordinates system, the world coordinates and the camera coordinate
+systems. By saying "world coordinates" we mean to the first left camera coordinates system 
+and by saying "camera coordinates" we mean a system where the camera is 
+at the origin, x-axis point to right, y_axis points down and the z axis points to the front
+(see image on the right).
+The extrinsic matrix is a 4X3 matrix which consists from two matrices, 
+a Rotation and translation. and can be written as [R | t] where R is the rotation 3X3 matrix
+and t is the 3x1 translation matrix. 
+> Image from the courtesy of David Arnon and Refael Vivanti
+
+#### Intrinsic matrix
+The intrinsic matrix is used for projecting a 3d point, 
+at the **camera coordinate**, to the camera's image plane. 
+It's includes the inner parameters of the camera such as 
+principal point at the image coordinates system (top left or centered)
+focal length at pixel units, Skew and Distortion.
 
 > We will denote the camera's intrinsic matrix as K and the extrinsic's as M1
 > for the left camera and M2 for the right camera.
 
-#### KITTI's cameras
-Those are KITTI's left and right camera extrinsic matrices and intrinsic matrix.
+#### KITTI's cameras' matrices
+Those are KITTI's left and right camera extrinsic matrices and intrinsic matrix:
 
 <img src=README_Images/KITTI/KITTIcameras.png width="" height="">
 
 
 ### Projecting matrix
-For those 2 matrices we can build a matrix which maps a 3d point at the world coordinates
-to the image plane. This matrix is simply, K * [R | t]. [R | t] maps the point 
-from the world coordinates to camera's coordinates and K project the point to the image plane.
+From those 2 matrices we can build a matrix which maps a 3d point at the **world coordinates**
+to the image plane. This matrix is simply, K * [R | t]. The extrinsic matrix, [R | t], 
+maps the 3d point from the world coordinates to camera's coordinates
+and K project the point to the image plane.
+
+> This idea of mapping between two Euclidean coordinates system is stems from the
+> the Euler's Theorem saying that "Two Euclidean coordinate systems differ by rotation and translation."
 
 ## Bundle Adjustment - First glimpse
 As mentioned above, we are doing localization and mapping, localization
-is finding object's location in "world" coordinates
+is finding object's location in **world coordinates**
 and mapping is creating some mapping of object's in the world.
 
-Every camera in the whole trajectory Sees several objects (we call them landmarks)
+Every camera in the whole trajectory sees several objects (we call them landmarks)
 in the world and every object in the world is seeing by several cameras. 
-By saying "Seeing by a camera" we mean that it can be projected to the camera plane.
+By saying "seeing by a camera" we mean that it can be projected to the camera plane.
 So we can look at this structure as "Bundles" that suppose to fit perfectly. As 
 we can see at the following image:
 
@@ -110,35 +134,36 @@ So we want to fit the bundles, means that we want that all cameras and landmarks
 poses would be in a place that the landmarks projections would fit to 
 our measures. "measure" means pixels in some camera that some landmark 
 appears at. Practically, bundle adjustment algorithm get as input, 
-Cameras, Landmarks and  projections measures and outputs cameras and landmarks poses that
-minimize the re projection error.
+Landmarks' projections at the Cameras' image plane and outputs cameras and landmarks poses that
+minimize the projection error.
 
-Due to the fact the bundle algorithm is a style Gradient descent algorithm which 
-finds a local minimum there is a greate importance in choosing the algorithm's
-starting point, or as we call it in the code `initial_estimation`. So before
-diving in to the bundle adjustment method we will start with a deterministic
+Due to the fact that Bundle Adjustment algorithm is abased on a the `Levenberg Marquadt` algorithm
+which 
+finds a local minimum, there is a greate importance in choosing the algorithm's
+starting point, or as we call it in our code `initial_estimation`. So before
+diving in to the Bundle Adjustment algorithm we will start with a deterministic
 approach to the problem that will obtain some, and I might say not bad, 
 trajectory estimation that will be used as our initial estimation.
 
 ## Estimate trajectory - Deterministic approach 
-So, as we said above, we want to create a world mapping and to find our 
+So, we want to create a world mapping and to find our 
 location simultaneously. Let's start with mapping.
 
 ### Mapping
-In "mapping" we mean that for a given camera's location we want to create some
-map of the world surrounds us. There are several ways to define a map on the world, like
+"Mapping" means that, for a given camera's pose, we want to create some
+map of the world surrounds us. There are several ways to define a map on the world like
 geometric map, topological map and others. In our project we will use the 
-point cloud map.
+`Point cloud` map.
 
 #### Point cloud
 
 A point cloud is a map that tells us about every coordinate in the world 
-if there is some object in that place, but it does not tell us if there is **no**
+if there is some object in that place, but it does not tell us if there is **not**
 object there.
 
 In order to create a point cloud we will use 2 concepts: `Images Matching` and `Triangulation`
 
-#### Images matching
+### Images matching
 Images matching is the process of finding matching key points between two images.
 The process of matching include 3 steps:
 1. Features detection.
@@ -146,12 +171,12 @@ The process of matching include 3 steps:
 3. Feature matching.
 
 There are several algorithms for the first two steps as AKAZE, SIFT, ORB, and others.
-In my project I made comparisons between the first three , and we finally chose `AKAZE`.
+In our project we made comparisons between the first three, and we finally chose `AKAZE`.
 
-For the 3rd step we had tried Brute force and knn using significance test. Finally,
+For the 3rd step we had tried Brute force and Knn using significance test. Finally,
 we use the brute force method due to better results and with a run time payment of
 40 sec only. At the Brute force matching we use the `Hamming norm` which is 
-more suitable for AKAZE which its feature vectors are binary vectors.
+more suitable for AKAZE that its feature vectors are binary vectors.
 
 This process can be done by the following code:
 ```python
@@ -163,8 +188,22 @@ detect_and_match(left_img, right_img)
 > There is some similar functions that differ by parameters and other functionality
 > for other purposes.
 
-Another thing we should mention is the `rectification test`. Each frame consists
-of two stereo camera means that for matching key points would be with the same 
+### Outliers rejections policies
+Of course, those matching algorithm are not accurate so there are some outliers that we get
+in the matching process. In general, outliers rejection is a very important process
+and especially in our project which uses the `Least Square` method and the assumption that our
+measures are `Normally distributed` that are very sensitive to outliers. 
+In our project we will meet the following outliers' rejection policies:
+1. Rectification test.
+2. Triangulation test.
+3. Significance test.
+4. Consensus match.
+
+Now we can explain the `Rectification test` rejection policy, the other
+policies we will meet later. 
+
+#### Rectification test
+Each frame consists of two stereo camera means that matching key points would be with the same 
 y-axis value. Thus, we can produce a nice outliers' rejection policy - a match that
 it's left_y and right_y is not equal (up to some threshold) is considered as an 
 outlier.
@@ -176,89 +215,9 @@ rectified_stereo_pattern_rej(img1_kpts, img2_kpts, matches)
 
 > This function returns the inliers and outlines indexes at the original `matches` list
 
-Now, that we have the abbility to match betweeen to key points at the images, we 
-can perform the `Triangulation` operation.
-
-
-#### Triangulation
-In order to create a map of the world we can use the operation called `Triangulation`.
-It is called that way due to a geometric consideration. The Triangulation operation
-get as input 1) pair of match cameras pixels and 2) Projections metrics for each camera
-and return the 3d point in the world they represent.
-
-<img src=README_Images/DeterministicApproach/Triangulation.png width="250" height="150">
-
-> Courtesy of David Arnon and Refael Vivanti 
-
-Applying the Triangulation is none other than solving a linear system of 4 equations.
-If we denote by P and Q the left and right cameras matrices respectively, 
-the desired 3d point by X and p and q the left and right pixels of X
-we get that multiplying P with X, at homogeneous coordinates, yields us p_hat
-(at homogeneous coordinates) that equals to p and the same for q. This leaves us
-with a linear equation system with that can be represented as a matrix of 4 X 3 as 
-we can see for P:
-
-<img src=README_Images/DeterministicApproach/PX.png width="800" height="90">
-
-And by doing the same for Q and concatenating those equations we get:
-
-<img src=README_Images/DeterministicApproach/TriangulationEquations.png width="200" height="100">
-
-This linear system does not necessarily have a solution, that geometrically represents
-the case where the two rays are not intersected but crossed. So, for solving those
-equations we have `SVD` which is very helpful in the `Linear Least Square` problems.
-
-The bottom line is that we are 'SVDing' that matrix and returns the last vector at V 
-from the SVD decomposition.
-
-
-```python
-# Performs triangulation for list of first image key points and returns a list.
-from utils.utills import triangulate
-p3d_hom = triangulate(left_cam_mat, right_cam_mat, kp1_xy_lst, kp2_xy_lst)
-```
-#### Triangulation rejection policy
-Practically, the triangulation provides us with another outliers'
-rejection policy. We can reject two kind of 3d points :
-1. Very far points
-2. Points with negative z value. 
-
-The reason for rejecting very far points is that although those point can be a good match, they
-are not telling us so much about their location because far away points tends to have a high
-error of their triangulation estimation so for our future purposes we would prefer to ignore them.
-The reason for far away points error's to get high value can be explained by the following:
-The key thing that causes the triangulation's error is the Feature detector inaccuracy and 
-by simply assuming that the detector inaccuracy over the image is equal, means their is no 
-reason that far away points will have a greater inaccuracy than closer ones
-because after all they both are pixels in the image. 
-Now, for simplicity lets assume that the triangulation's triangle is an 
-isosceles triangle with base angles of 'a' and baseline 'm' we get that the
-object's distance from the camera equals X = m / tan(a) so the distance depends on tg(a) 
-and due to the tangent function behavior in the range [0, pi / 2] 
-we have that for error of e and two angles a > b it holds that 
-: tg(a + e) / tg(a) > tg(b + 3) / tg(b). Therefore inaccuracy of e is more dramatic at larger
-angles. 
-
-Rejecting points with negative values is obviously but let's explain how does points are created.
-We notice that because the left camera is from the left of the right camera we suppose to
-have that a 3d point in the world would project to the left image's and the right image's 
-pixels such that x_l > x_r. So as x_r get closer to x_l we get that the triangulation result
-will be far as well untill we have the situation where x_r > x_l and in that case, the 
-triangulation triangle is changing direction and now the ray's intersection will be **behind**
-the cameras. So when we are collecting our data we can add this rejection policy:
-```python
-if x_r > x_l or x_l - x_r < TRIANGULATION_THRESH:
-    return
-```
-
-We have done this policy rejection at the following function:
-
-```python
-from utils.utills import far_or_neg_pts_rej
-
-far_or_neg_pts_rej(left0_coor, right0_coor)
-```
-This functions returns the lists indexes that their corresponding values passed the test.
+----
+Now, that we have the ability to match between two key points at the frame, we 
+can perform the `Triangulation` operation. But, before that we should mention the `Least Square`
 
 #### Least square
 Least square is an algorithm that is used for fitting a model to a given data 
@@ -284,14 +243,121 @@ for the minimum norm solution
 3. A is thin, more rows than columns, there are zero solutions, so we search for the closest solution,
 means the projection of x on the A dimension
 
-### Localization; PnP, Tracking and Triangulation
+
+### Triangulation
+In order to create a world mapping we can use the operation called `Triangulation`.
+It is called that way due to a geometric consideration. The Triangulation operation
+get as input, a pair of match cameras' pixels and a projections' metrics for each camera
+and return the 3d point in the world they represent.
+
+<img src=README_Images/DeterministicApproach/Triangulation.png width="250" height="150">
+
+> Courtesy of David Arnon and Refael Vivanti 
+
+Triangulation is none other than solving a linear system of 4 equations.
+If we denote by P and Q the left and right cameras' projection matrices respectively, 
+the desired 3d point by X and by p and q the left and right pixels of X's projection
+we get that the multiplication of P with X, at homogeneous coordinates, yields p_hat
+(at homogeneous coordinates) that equals to p and the same for q. This leaves us
+with a linear equation system that can be represented as a matrix of 4X3. As 
+we can see for P:
+
+<img src=README_Images/DeterministicApproach/PX.png width="" height="">
+
+Doing the same for Q and concatenating those equations we get:
+
+<img src=README_Images/DeterministicApproach/TriangulationEquations.png width="200" height="130">
+
+This linear system does not necessarily have a solution, which in geometrically meanings 
+it represents the case where the two rays does not intersect but crossed. 
+So, for solving those
+equations we will use `SVD` which is very helpful tool in the `Linear Least Square` problems.
+
+The bottom line is that we are 'SVDing' that matrix and returns the last vector at V 
+from the SVD decomposition.
+
+
+```python
+from utils.utills import triangulate
+# Performs triangulation for a list key points and returns a list of a 3d points.
+p3d = triangulate(left_cam_proj_mat, right_cam_proj_mat, left_kp_lst, right_kpt_lst)
+```
+#### Triangulation rejection policy
+Practically, the triangulation provides us with another outliers'
+rejection policy. We can reject two kind of 3d points :
+1. Very far points
+2. Points with negative z value. 
+
+The reason for rejecting very far points is that although those point can be a good match, they
+are not providing us much information about their location because far points tends to 
+have a high
+inaccuracy of their triangulation estimation so for our future purposes we would prefer to 
+ignore them.
+The reason that far points error tend to get high values can be explained by the following:
+The key thing that causes the triangulation's error is the Feature detector inaccuracy and 
+by simply assuming that the detector inaccuracy over the image is even, means there is no 
+reason that far away points will have a higher inaccuracy than closer ones
+because after all they both are pixels in the image and the detectors are looking, basically, 
+at the pixel's environment which is not influenced by the real location at the world. 
+Now, for simplicity lets assume that the triangulation's triangle is an 
+isosceles triangle with base angles of 'a' and baseline '2m', so we have that the
+object's distance from the camera equals to X = m / tan(a) so the distance depends on tg(a) 
+and due to the tangent function behavior in the range [0, pi / 2] 
+it holds that for error of 'e' and two angles 'a' > 'b' : 
+: tg(a + e) / tg(a) > tg(b + e) / tg(b). Therefore inaccuracy of e is more dramatic at a larger
+angles. 
+
+Rejecting points with negative values is obviously but let's explain how such points are created.
+Because the left camera is from the left of the right camera we suppose to
+have that a 3d point in the world would project to the left image's and the right image's 
+pixels such that x_left > x_right. So as x_right get closer to x_left
+we get that the triangulation result
+will be far as well until we have the situation where x_r > x_l and in that case, the 
+triangulation triangle is changing direction and now the ray's intersection will be **behind**
+the cameras. So when we are collecting our data we can add this rejection policy:
+```python
+if x_r > x_l or x_l - x_r < TRIANGULATION_THRESH:
+    return
+```
+
+Actually we do this with numpy conditioning in the following way:
+```python
+diff_matches = left0_matches_coor[:, 0] - right0_matches_coor[:, 0] 
+closer_pts = diff_matches > TRIANGULATION_THRESH
+positive_pts = diff_matches > 0
+return closer_pts * positive_pts
+```
+
+We have done this policy rejection at the following function:
+
+```python
+from utils.utills import far_or_neg_pts_rej
+
+far_or_neg_pts_rej(left_img_pixles, right_img_pixles)
+```
+>This functions returns the lists indexes that their corresponding values passed the test.
+
+---
+So now we have the ability to create world mapping with a point cloud: 
+
+<img src=README_Images/DeterministicApproach/pointcloud.png width="300" height="250">
+
+> Camera is represented by the red point.
+
+Now, we are moving for the localization part
+
+
+### Localization
 The localization is done inductively by the following pseudocode:
-1. Initialize frame 0 location to (0, 0, 0)
+1. Initialize frame 0 to the origin
 2. For the ith frame, i in range()
    1. Perform _tracking_ between ith and (i - 1)th frames
    2. Create a point cloud of the (i - 1)th frame  - `Triangulation`.
    3. Compute the transformation between those frames using steps 1 - 2 - `PnP`.
    4. Compute the ith frame 3d location.
+
+> Setting the first frame to the origin means setting its extrinsic matrix to be 
+> the [Identity | 0]
 
 Let's explain each step, but because `PnP` is the main algorithm here we will explain
 it first.
@@ -299,8 +365,8 @@ it first.
 #### PnP algorithm
 `PnP`, shortcut of Projective n Points, is an algorithm that Given n landmarks at the
 world coordinates, their projection on the camera plane and the 
-`Intrinsic camera matrix`, denoted by K, it returns the
-transformation between world and camera.
+`Intrinsic camera matrix`, it returns the
+transformation between world and camera coordinates system.
 
 In the following image, the Xs represents the points at the world coordinates, 
 the zs are their projection at the camera plane and X_p is the camera pose that we
@@ -315,22 +381,25 @@ The following code will perform the PnP algorithm:
 from utils.utills import pnp 
 ex_cam_matrix = pnp(world_p3d_pts, img_proj_coor, calib_mat, pnp_method)
 ```
-This function wraps the `cv2.pnp()` method. The cv2's PnP returns a `Rodriguez` vector
+> This function wraps the `cv2.pnp()` method. The cv2's PnP returns a `Rodriguez` vector
 so at our function we call cv2's PnP and, if it succeeds, our function will convert it
 to a transformation matrix.
 `world_p3d_pts` are the X's, `img_proj_coor` are the z's, `calib_mat` is the 
 calibration or intrinsic matrix of the camera and `flag` is the cv2's `SOLVEPNP` method 
 that the `cv2.pnp()` is expected to get.
+>
+> `Rodirguez` vector is a 6dim vector that represent a camera pose by its 
+> euler angles and its 3d location with the order (azimut, pitch, roll, x, y, z)
 
 So, for using PnP method we need a point cloud that, as mentioned at the pseudocode,
 is done from the (i - 1)th frame and match each 3d point to a pixel at the ith frame
 image plane, for doing that we will need to use the `Tracking` process.
 
 #### Tracking
-`Tracking` is the process of finding key points in consecutive frames
-where we wish to find a key point which appears in all 4 images. Practically speaking,
+`Tracking` is the process of finding key points in consecutive frames.
+In this process we wish to find a key point which appears in all 4 images. Practically speaking,
 we perform a keypoint matching at the first frame, second frame and between the 
-lefts images of those consecutive frames. For convenience we will call the first frame
+lefts images of these consecutive frames. For convenience, we will call the first frame
 , frame 0, the second frame, frame 1 and their left and right images left_i and right_i
 correspondingly.
 
@@ -338,7 +407,7 @@ correspondingly.
 
 > Courtesy of David Arnon and Refael Vivanti 
 
-As mentioned above, matching is down with the rectified rejection policy, so
+As mentioned above, matching is done with the rectified rejection policy, so
 the tracking process is done as follows:
 1. Find matches between frame 0 with the rectified rejection policy
 2. Find matches between frame 1 with the rectified rejection policy
@@ -357,7 +426,7 @@ tracking_4images(left0_dsc, left1_dsc,
                  pair0_matches, pair0_rec_matches_idx,
                  pair1_matches, pair1_rec_matches_idx)
 ```
-`pair0_matches` list of matches (`DMatch` cv2 object) at pair 0
+>`pair0_matches` is a list of matches (`DMatch` cv2 object) at pair 0
 This function returns 2 lists, one for pair 0 matches that were tracked in all 4 images and
 the other for the pair 1 matches. We did not write them due to row space limit.
 Notice that this function receives a matches at pair 0 and pair 1 and their indexes where
@@ -381,16 +450,16 @@ from utils.utills import create_rec_dic
 # dict of {left kpt idx: pair rec id}
 rec0_dic = create_rec_dic(pair0_matches, pair0_rec_matches_idx)
 ```
- And we do the same for pair1. Now, we pass over the left0 and left1 matches 
-for each match, which is a tuple (left0 key point, left1 key point) of a matching key points 
- we check if the left0 key point is in its rec0_dic - means that it passed
-the rectified test, and the same for the left1 key point. if they both passed the test, that
-means that this feature is in the all 4 images, Therefore we choose its index at the
-pair 0 rectified indexes and at the pair 1 rectified indexes, That way we create a new 
+ We do the same for pair1. Now, we pass over the left0 and left1 matches.
+For each match, which is a tuple (left0 key point, left1 key point) of a matching key points 
+we check if the left0 key point is in its rec0_dic - means it passed
+the rectified test, and the same for the left1 key point. If they both passed the test, it
+means this feature is in the all 4 images, Therefore we choose its index at the
+pair 0 rectified indexes and at the pair 1 rectified indexes. That way we create a new 
  **3** lists where each of them contains the indexes of the matches lists that were tracked
-in all 4 images. Important to notice that those lists are "sharing indexes" means that the
+in all 4 images. It's important to note that those lists are "sharing indexes", That is the
 ith value in each list points to an index at the matches list and those matches match to each 
-other.
+other in the left0 and left1 list.
 
 All this is done by:
 ```python
@@ -428,9 +497,9 @@ At the function ,at the first row, `get_feature_obj` we create a list of `Featur
 objects that represents a feature in a frame. This object can be found at the
 `DataBaseDirectory`
 
-fFr testing my PnP transformation quality I plotted two points cloud one for first frame
-and another for the second frame, each in its own coordinates system, and then I mapped the
-first point cloud to the coordinates system of the second frame, and I've the following result:
+For testing our PnP transformation result quality, We plotted two points cloud, one for first frame
+and another for the second frame, each in its own coordinates system, and then We mapped the
+first point cloud to the coordinates' system of the second frame, and we've the following result:
 
 <img src=README_Images/DeterministicApproach/2PointsCloud.png width="350" height="280">
 
@@ -442,7 +511,7 @@ can compute the ith camera location simply by:
 <img src=README_Images/DeterministicApproach/findloc.png width="390" height="110">
 
 Where the first equation stems from that the Transformation we have got from the PnP
-transforms between world (Here its the previous camera world) coordinates to the camera 
+transforms between world (Here it's the previous camera world) coordinates to the camera 
 coordinates means that the camera location at the previous camera coordinate, denoted by
 [x, y, z], is mapped by this transformation to [0, 0, 0] as the camera placed in the 
 origin in its own coordinates system.
@@ -454,7 +523,7 @@ method.
 #### RANSAC
 RANSAC, shortcut of Random Sample consensus is an algorithm that wish to estimate the 
 parameters of a mathematical model from a data containing outliers by using iterative method. 
-This method is based the idea that by repeated drawing point we except to draw a set of point
+This method is based on the idea that by repeated points drawing we except to draw a set of point
 which contains inliers only. The way we choose the best set of points is that after 
 computing our model we "check" (depends on the model) how many points supports this model,
 and the one who have the bigger set is the chosen one.  
@@ -462,9 +531,10 @@ and the one who have the bigger set is the chosen one.
 Here, our mathematical model which we wish to model is the transformation between two frames 
 using the PnP algorithm. So we use RANSAC to model our transformation better by reducing the
 chance using outlier measure in the modeling. But actually we earn another thing, at the 
-end of the RANSAC operation we get the transformation between the frames and we get the 
-subgroup of feature that support this trans, so we can trust that they are inliers. That way, 
-we have got **another inliers' rejection policy**.
+end of the RANSAC operation we get the transformation between the frames and a 
+subgroup of feature that support this transformation,
+so we can trust that they are inliers. That way, we have got another
+inliers' rejection policy which we call it `Consensus match`
 
 So, how does that works? There are two main things which RANSAC method is built from:
 1. Iteration number.
@@ -474,9 +544,9 @@ So, how does that works? There are two main things which RANSAC method is built 
 
 For the iteration number, there is basically two methods. The one is defining some constant 
 number of iteration and the second is defining two parameters of evaluating the process and
-calculate the number of iteration needed by them. One parameter is the `probability` of not getting
-an outlier we wish to have and the second is the data's `outliers percentage` we call it 
-"Online estimation ransac". In my project I used the second option.
+calculate the number of iteration they yield. One parameter is the `probability` of not getting
+an outlier we wish to have and the second is the data's `outliers percentage`. We call it 
+"Online estimation ransac". In our project I used the second option.
 
 Now we will talk about the way we estimate our number of iteration as a function of the 
 two parameters that mentioned above, the probability of not getting an outlier, and the 
@@ -489,46 +559,45 @@ Now, we denote with P the desired probability we want that our model will get on
 1 - P is the desired probability of getting at least one outlier thus want that the 'real' 
 probability of getting at least one outlier will be lower than 1 - P:
 
-<img src=README_Images/DeterministicApproach/RansacIter.png width="500" height="160">
+<img src=README_Images/DeterministicApproach/RansacIter.png width="" height="">
 
-In practice, we don't know the outliers' percentage of our data, so we estimate e online. That
-Means that we raise N1 at each iteration until it will be hold the inequality mentioned above.
+In practice, we don't know the outliers' percentage of our data, so we estimate 'e' online. That
+Means that we raise N1 at each iteration until it will hold the inequality mentioned above.
 
-
-A little remark about computing the outliers percentage at each iteration. 
-In fact, we don't know the outliers' percentage, and we assume that in every
-iteration there are some inliers that are outliers and vice versa, 
-therefore we use an estimation for the outliers and inliers percentage for each iteration. 
-In each iteration we sum, separately, all the outliers and inliers we have got and we compute
-the outliers' percentage by a regular mean.
+A little remark about computing the outliers' percentage at each iteration. 
+In fact, we don't know the outliers' percentage, and we assume that at every
+iteration there are some inliers which are outliers and vice versa. 
+Therefore, we use an estimation for the outliers and inliers percentage for each iteration. 
+In each iteration we sum, separately, all the outliers and inliers we have got, and we compute
+the outliers' percentage by a simple mean.
 
 ```python
 accum_outlrs_num += num_points - num_supp  # # accum for accumulated
 accuum_inliers_num += num_supp
 outliers_perc = min(accum_outliers_num / (accum_inliers_num + accum_outliers_num), outliers_perc)
 ```
-> `outliers_perc` is the parameter of the outliers percentage. Since we are using an estimation 
-that in expectation it equals to the real outliers percentage but there maybe some iterations
-that this estimation is totally wording and we get percentage that is bigger than one what can
-cause a big demage to the iteration number estimation we will mention below.
+> `outliers_perc` is the parameter of the outliers' percentage. Since we are using an estimation 
+that in expectation it equals to the real outliers' percentage there maybe some iterations
+that this estimation is totally wrong, where we get percentage that is bigger than one what can
+cause numeric problem at the iteration number estimation we had mentioned above.
 
 **2. Operations performed in each iteration**
 
 At each iteration:
-1. Drawing a set of pixels at the frame '1' left image.
+1. Draw a set of pixels at the frame '1' left image.
 2. Compute the transformation using `P4P`
-3. Inliers detection - `Consensus match` method
+3. Supports detection - `Consensus match` method
 4. Save the transformation and the supporters set if it's the best.
 
 At the end of that iteration:
 1. Compute the transformation using the inliers set by `PnP`
 
-> Notice: At the first iteration we use P4P and at the last one we use PnP with more points.
+> Notice: At the first iteration we use P4P and at the last one we use PnP which uses more points.
 
 Here we can see the influence of the RANSAC on finding supporters. Each column is 
 left 0 and left1 images:
 
-<img src=README_Images/DeterministicApproach/RansacCompareSupporters.png width="900" height="330">
+<img src=README_Images/DeterministicApproach/RansacCompareSupporters.png width="" height="">
 
 ###### Implementation
 PnP using RANSAC function:
@@ -551,14 +620,14 @@ So far, we have a tracking between 2 frames in the all 4 images, so we use this 
 define a transformation supporter. Given a transformation, computed by the P4P algorithm, we
 go through all the 3d points and projects them on frame 1 and check if its distance
 from the feature we tracked is small, up to some threshold. If so, we define it as a supporter.
-By Defining a supporter that way we get that a supporter is a feature that agree in 4 images
-what makes in a very strong outliers' rejection.
+By Defining a supporter that way we get that a supporter is a feature that agree in all 4 images
+what makes it a very strong outliers' rejection.
 
 <img src=README_Images/DeterministicApproach/ConsensusMatch.png width="350" height="280">
 
 > Courtesy of David Arnon and Refael Vivanti
 
-**Mathematical remark**. Notice that the 3d point is at the left0 camera coordinates
+>**Mathematical remark**. Notice that the 3d point is at the left0 camera coordinates
 so in order to project it all 4 cameras we need to find each camera's projection matrix.
 The projection matrix depends on the intrinsic and extrinsic matrices. The intrinsic
 one is the same among all 4 and there is a difference at the extrinsic matrices.
@@ -566,15 +635,15 @@ The left0's extrinsic matrices is simply [I | 0], right0 was given to us by
 Kitty, left1 founded by PnP, so it remains to calculate the right1 only.
 We can calculate the right1 by composing the transformation between right1 and
 left 1, that we know by Kitty, with the transformation between left0 and left1.
-
 <img src=README_Images/DeterministicApproach/composeCam.png width="330" height="90">
-
+> 
 > Courtesy of David Arnon and Refael Vivanti
 
 And mathematically speaking:
 
-<img src=README_Images/DeterministicApproach/ComposeCamMath.png width="430" height="250">
+<img src=README_Images/DeterministicApproach/ComposeCamMath.png>
 
+###### Implementation
 This can be done at the following function:
 ```python
 from utils.utills import compose_transformations
@@ -607,28 +676,28 @@ location. We put all together, and we get the following trajectory estimation:
 
 ----
 Now that we have in hand the initial estimation we can move on to solve the 
-Bundle Adjustment, but, as we said, the Bundle Adjustment is build from camera
-that sees several landmarks and landmarks that seen by several cameras so we 
-need to create a connection between cameras and landmarks. Till now, we tracked 
+Bundle Adjustment, but, as we said, the Bundle Adjustment is build from set of cameras
+that each of them sees several landmarks and each landmark is seen by several cameras, so we 
+need to create a connection between cameras and landmarks. So far, we had tracked 
 feature between consecutive frame, now we extend our feature tracking across
-multiple frames and implement a suitable database for the features. 
-<img src=README_Images/Database/featureTracking.png width="640" height="300">
+multiple frames and implement a suitable database for the features' tracking. 
+<img src=README_Images/Database/featureTracking.png>
 
 > Courtesy of David Arnon and Refael Vivanti
 
 ## Building feature's tracking Database
 So, we want to extend our feature tracking ability from consecutive frames 
 to multiple frames tracking. We will do this inductively, given the ith frame
-we track features between it and its previous frame and now for each feature 
+we track features between it and its previous frame so for each feature 
 there are 2 options:
 1. If it's a new feature - create a new track.
 2. If it's an old feature - connect it to the existing track.
 
-At the end of this process we get tracks were each track corresponds to a 3d point
-in the world, which we called it landmark. 
+At the end of this process we have a set of tracks were each track corresponds to a 3d point
+in the world, which we called it a landmark. 
 
 In addition, for every track we save the frames it appears at and for 
-each frame we save all tracks it sees. Thus we have the suitable suit for the 
+each frame we save all tracks it sees. Thus, we have the suitable suit for the 
 database.
 
 ###### Implementation
@@ -640,9 +709,9 @@ For this mission we defined several classes:
 
 All those classes are stored at the `DataBaseDirectory` directory.
 
-In order to create a `DataBase` object we need to do preliminary calculation
+In order to create a `DataBase` object we need to do a preliminary calculation
 of computing all the features tracked between consecutive frames. This can be
-done by function we had already for creating the trajectory's initial estimation.
+done by a function we had already for creating the trajectory's initial estimation.
 
 ```python
 from utils.utills import find_features_in_consecutive_frames_whole_movie
@@ -686,7 +755,7 @@ We defined several measures for evaluating our tracking quality:
 
 #### Example of tracking with length of 10
 
-<img src=README_Images/Database/track.png width="250" height="750">
+<img src=README_Images/Database/track.png >
 
 > For convince we cropped the image to 100X100 for better view.
 
@@ -694,7 +763,7 @@ We defined several measures for evaluating our tracking quality:
 This graph represents, For each frame, the number of tracks outgoing
 to the next frame, Means the number of tracks on the frame with links
 also in the next frame.
-<img src=README_Images/Database/Connectivity.png width="750" height="360">
+<img src=README_Images/Database/Connectivity.png >
 
 #### Track length histogram
 <img src=README_Images/Database/Tracklengthhistogram.png width="500" height="310">
@@ -704,40 +773,44 @@ Now we have our database in hand we can continue to main algorithm, the Bundle A
 
 ## Back to the Bundle Adjustment
 Because there is some noise in our measures, we want to add an uncertainty factor
-to this process. Being more formally, in the bundle adjustment algorithm
+to this process. Being more formally,
 given a set of measures, denoted by Z, we want to find
 a set of cameras, denoted by C, and a set of landmarks, denoted by Q, 
 that maximize the conditional probability of C,Q under the condition of Z.
 
 To continue from here we would assume the following assumptions:
 - The measure is normally distributed around the "real" pixels with some covariance
-- MLE estimation at the probability of some pair C,Q - means that we assume theirs no pair that different from other
-- The measures are independents in each other, each measure depends on its corresponding camera and landmark including some normally distributed with zero mean and identity covariance noise  
+- MLE estimation at the probability of some pair C,Q - means that we assume there is no pair
+that different from others.
+- The measures are independents in each other, 
+each measure depends on its corresponding camera and landmark including 
+some, normally distributed with zero mean and identity covariance, noise.
 
-so by using those assumptions, bayes role and Cholesky decomposition we get:
+So by using those assumptions, bayes role and Cholesky decomposition we get:
 
-<img src=README_Images/BundleAdjustmentPart/BundleFormal.png width="460" height="205">
+<img src=README_Images/BundleAdjustmentPart/BundleFormal.png >
 
-delta z is the re projection error mentioned above and is defined to be the difference 
+>delta z is the re projection error mentioned above and is defined to be the difference 
 between the projection of landmark q_i on c_j and our measure z_{i,j}
 
-#### Bundle adjustment as a Least square problem
+### Bundle adjustment as a Least square problem
 
 One can notice that this problem is the Least square problem but due to the fact that
-the projection operation is not linear as it includes dividing the projection result
-with the homogenous coordinate which is non-linear operation.
+the projection operation is not linear as it includes non-linear operation as 
+dividing the projection result with the homogenous coordinate.
 
 So solving Bundle adjustment, under our assumptions, is actually solving the Least square
-problem. Recall that solving a Least square problem is done iteratively where in each
-iteration we find the best step to step in to minimize our function. In practice, we will
-use gtsam's implementation of the Levenberg-Marquardt algorithm which one can think
-about it as a mixture of Gradient descent and Gauss-Newton algorithms.
+problem. Recall that solving the Least square problem is done iteratively where in each
+iteration we find the best step to step by in order to minimize our function. 
+In practice, we will
+use `GRSAM`'s implementation of the Levenberg-Marquardt algorithm which one can think
+about it as a mixture of the Gradient descent and the Gauss-Newton algorithms.
 
-Since the Levenberg-Marquardt algorithm there is a very importance of the initialization
+Since the `Levenberg-Marquardt` algorithm there is a very importance of the initialization
 of the cameras and landmarks poses that the algorithm starts with. The initial 
 estimation will be explained later in details.
 
-#### Bundle adjustment freedom degrees
+### Bundle adjustment freedom degrees
  
 The last issue is the freedom degrees at the Bundle adjustment problem.
 There are 7 freedom degree that are divided into 3 parts:
@@ -745,16 +818,15 @@ There are 7 freedom degree that are divided into 3 parts:
 2. Rotating - rotating the whole system.
 3. Translation - moving the system to other location.
 
-In the Kitty benchmark the scale is defined by the distance between the cameras, so we
-need to determine the rotation and translation that we will do by setting the first
-camera location
-
-### Practical
+In the Kitty benchmark the scale is defined by the stereo camera baseline, so we
+need to determine the rotation and translation. We will do this by setting the first
+camera location.
+---
 For implementing the Bundle adjustment algorithm we will use as **Factor graph**
-#### Factor graph
+### Factor graph
 A factor graph is a graph where each vertex represents some object that we want to 
 find its values and each edge represents a constraint between two objects.
-At the Bundle Adjustment problem:
+At the Bundle Adjustment problem we have:
 - Vertices are Cameras or landmarks.
 - Edges are the projection of a landmark to a camera.
 As mentioned above Edge's constraint is the measure of the landmark on the camera. 
@@ -767,17 +839,17 @@ So actually we are converting our bayesian graph to the factor graph:
 
 
 #### Factor graph and GTSAM library
-In our project, We use GTSAM - Georgia Tech Smoothing and Mapping Library 
-for factor graph optimization.
+In our project, We use GTSAM - Georgia Tech Smoothing and Mapping Library -
+for the factor graph optimization.
 
-The main thing we need to notice is that, until now we defined a transformation
+The main thing we need to notice is that so far we defined a transformation
 , an extrinsic camera matrix, of a camera as a mapping from the world coordinates
-to camera coordinates. At GTSAM things works opposite, a transformation, or
+to camera coordinates. At GTSAM things works the opposite, a transformation, or
 as it called in GTSAM a `Pose3`, is a mapping from the camera coordinates to
 the world coordinates. So in order to work with gtsam we convert our
 transformation's directions. Mathematically we can do this by: 
 
-<img src=README_Images/BundleAdjustmentPart/GtsamTrans.png width="480" height="230">
+<img src=README_Images/BundleAdjustmentPart/GtsamTrans.png>
 
 This is done by the function:
 ```python
@@ -785,10 +857,10 @@ from utils.utills import convert_ex_cam_to_cam_to_world
 cam_to_world_ex_cam = convert_ex_cam_to_cam_to_world(world_to_cam_ex_cam)
 ```
 
-#### Bundles "windows"
+### Bundles "windows"
 Due to the fact that solving the Least square problem using the Levenberg-Marquardt 
 algorithm involve inverting a very large dimension covariance matrix 
-which is not efficient and numerically unstable, we divide the whole trajectory 
+which is not efficient and numerically unstable operation, we divide the whole trajectory 
 to sub trajectories, creating a little bundle for each one and solving it.
 
 We perform local Bundle Adjustment on a small window consisting of consecutive frames.
@@ -797,7 +869,7 @@ Each bundle window consists 2 key frames and all the frames between them.
 It is important to notice that the last bundle window's key frame and the first
 bundle window's key frame overlap
 
-<img src=README_Images/BundleAdjustmentPart/BundleWindows.png width="490" height="180">
+<img src=README_Images/BundleAdjustmentPart/BundleWindows.png >
 
 > Courtesy of David Arnon and Refael Vivanti 
 
@@ -807,26 +879,24 @@ we look at all tracks in it and chose the **"median" track's length** to be the 
 between the current key frame to the next one, where the track's length
 computed by The difference between the last frame in the track and the current key frame.
 We quoted the word "median" because actually we take the track's length that is greater
-than **82%** of the other tracks. ~~Maybe change it condier knn~~
-
-
+than **82%** of the other tracks.
 
 ###### Implementation
 Calling the following row will create a `BundleAdjustment` object
 that contains a list of `BundleWindow` objects by the key frames choosing criteria 
-mentioned above
+mentioned above:
 ```python
 import BundleAdjustmentDirectory.BundleAdjustment as BundleAdjustment
 bundle_adjustment = BundleAdjustment.BundleAdjustment()
 ```
 
-#### Solving Bundles Windows and multiprocessing
+### Solving Bundles Windows and multiprocessing
 Solving each bundle locally means that all cameras and landmarks in it are related
-to the first camera (by our choice) so at the end of solving all bundles we get 
+to the, by our choise, first camera. So at the end of solving all bundles we get 
 a list of cameras that each of them is related to the previous one. In addition, all 
-landmarks in each bundle are also related to the first key frame in it, so when to
-represent this system of cameras and landmarks we need to transform each bundle elements
-to the global system.
+landmarks in each bundle are also related to the first key frame in it, so to
+represent this system of cameras and landmarks in one coordinates system
+we need to transform each bundle elements to the global system.
 
 So each bundle is solved separately so this process of solving all bundles can be done 
 by using multiprocessing. In our code we used 5 process.
@@ -844,13 +914,13 @@ bundle_adjustment.solve(BundleAdjustment.ITERATIVE_PROCESS)
 ```
 
 ###### Run time issues
-The iterative method runs in ~ 10 minutes
+The iterative method runs in ~ 8 minutes
 
-The multiprocessing method runs in ~ 3.5 minutes
+The multiprocessing method runs in ~ 2.8 minutes
 
-Choosing key frames process ~ 1.5 minute.
+Choosing key frames process ~ 40 seconds.
 
-#### Creating each bundle's Factor graph and choosing landmarks
+### Creating each bundle's Factor graph and choosing landmarks
 For each bundle we need build a factor graph contains:
 - All cameras between keyframes
 - All landmarks at those frames
@@ -880,23 +950,13 @@ covariance that will serve us later.
 having in mind that such kind of landmarks are tends to be inaccurate and
 in addition we make troubles at the optimization because their uncertainty is large
 what reflected in numeric issues when inverting the covariance matrix at 
-the optimization process. If the point is not that far, the landmark's left's 
-x coordinate should be greater than the right one up to some threshold
+the optimization process. This is done by the `Triangulation` rejection policy we had mentioned
+above.
 - We assume that each bundle has a low error so the relative pose between the last key
 frame and the first one is pretty accurate. The whole problem starts because
 we are estimating a trajectory of 3450 frame, and about 432 key frames, therefore
 even a small error accumulates into a large error. We will see in the future how 
 fix this.
-- 
-The following code performs the last rejection: 
-
-```python
-# measure_xl is the measure's x coordinate at the frame's left image's
-if abs(measure_xl - measure_xr) < DIST_THRESHOLD:
-    return
-```
-
-
 
 ###### Implementation
 Calling the following row will create a bundle:
@@ -911,6 +971,7 @@ bundle_window.create_factor_graph()
 
 Creating factors:
 ```python
+import gtsam, numpy
 # Projection factor
 proj_covariance = gtsam.noiseModel.Isotropic.Sigma(3, 1.0)
 proj_factor = gtsam.GenericStereoFactor3D(measurement, proj_uncertainty,
@@ -923,23 +984,23 @@ pose_factor = gtsam.PriorFactorPose3(left_pose_sym, left_cam_pose, pose_uncertai
 
 ```
 
-At the `proj_covariance` we choose the identity covariance matrix meaning that
+>At the `proj_covariance` we choose the identity covariance matrix meaning that
 we assume that our detector is wrong up to 1 pixel (with std dist of 1) at the
 left's x coordinate, right's x coordinates and the y coordinates on both images.
-
-At the `pose_covariance` the first 3 values are for the euler angles: azimut, pitch and
+> 
+>At the `pose_covariance` the first 3 values are for the euler angles: azimut, pitch and
 roll, and we chose an uncertainty of 5 angles for each of them, while the second
 3 are for the 3d location: x, y, z, here we chose 30cm uncertainty at the x axes, 
 10 cm at the y axes and 1 meter at the z axes.
 
-### Results 
+### Bundle Adjutment Results 
 This graph shows the car trajectory over the driving scene. 
 You can see that theirs a *pink* trajectory which is the initial estimation for 
-the `Bundle Adjustment` algorithm. The red one is the cameras poses after performing
+the `Bundle Adjustment` algorithm. The red one is the cameras poses after the
 optimization and the one in cyan is the ground-truth trajectory as received from
 Kitty's benchmark.
 
-<img src=README_Images/BundleAdjustmentPart/BundleResult.png width="560" height="420">
+<img src=README_Images/BundleAdjustmentPart/BundleResult.png >
 
 ---
 Until now, we have got a pretty good estimation for the car trajectory, It can be seeing
