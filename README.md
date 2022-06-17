@@ -13,8 +13,8 @@ is a computational problem of constructing a map of an unknown
 environment while keeping track of an agent's location within it.
 We accomplish this mission using the `Bundle Adjustment` algorithm which is 
 an algorithm for solving SLAM. 
-This project is an implementation of, and in some meaning, a refined version,
-the algorithm presented at the
+This project is an implementation, and in some meaning, a refined version,
+of the algorithm presented at the
 [Frame SLAM](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=hczHVxEAAAAJ&citation_for_view=hczHVxEAAAAJ:WF5omc3nYNoC&tzom=-120) 
 article.
 
@@ -40,9 +40,15 @@ In this project we are using the following concepts and many others:
 - Factor graph.
 
 
-The data We are using is of KITTI's Benchmark Suite.
+The data we are using is of KITTI's Benchmark Suite.
 In this project we are trying to estimate a trajectory of a moving car
 that has a stereo camera on its roof, and it is filming its travel route.
+
+At the end of the project we will get a pretty food estimation for the car's 
+trajectory while going through 3 stations: Deterministic estimation, Bundle Adjustment
+optimization and Loop Closure strengthening.
+
+
 
 ## KITTI's Benchmark
 
@@ -1259,10 +1265,6 @@ percentage and it's influence at the bundle trajectory:
 
 
 So we check the values at [0.855, 0.856, 0.857, 0.858, 0.859].
-### Results
-
-<img src=README_Images/BundleAdjustmentPart/BundleWindows.png width="400" height="140">
-
 ## Loop Closure
 
 By manually examining the trajectory we have found that there are 3 possible areas
