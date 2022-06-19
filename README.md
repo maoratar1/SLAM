@@ -650,9 +650,9 @@ so in order to project it all 4 cameras we need to find each camera's projection
 The projection matrix depends on the intrinsic and extrinsic matrices. The intrinsic
 one is the same among all 4 and there is a difference at the extrinsic matrices.
 The left0's extrinsic matrices is simply [I | 0], right0 was given to us by 
-Kitty, left1 founded by PnP, so it remains to calculate the right1 only.
+KITTI, left1 founded by PnP, so it remains to calculate the right1 only.
 We can calculate the right1 by composing the transformation between right1 and
-left 1, that we know by Kitty, with the transformation between left0 and left1.
+left 1, that we know by KITTI, with the transformation between left0 and left1.
 <img src=README_Images/DeterministicApproach/composeCam.png width="330" height="90">
 > 
 > Courtesy of David Arnon and Refael Vivanti
@@ -837,10 +837,10 @@ There are 7 freedom degree that are divided into 3 parts:
 3. Translation - moving the system to other location.
 
 
-In the Kitty benchmark the scale is defined by the stereo camera baseline, so we
+In the KITTI benchmark the scale is defined by the stereo camera baseline, so we
 need to determine the rotation and translation. We will do this by setting the first
 camera location.
----
+
 For implementing the Bundle adjustment algorithm we will use as **Factor graph**
 ### Factor graph
 A factor graph is a graph where each vertex represents some object that we want to 
@@ -1017,7 +1017,7 @@ This graph shows the car trajectory over the driving scene.
 You can see that theirs a *pink* trajectory which is the initial estimation for 
 the `Bundle Adjustment` algorithm. The red one is the cameras poses after the
 optimization and the one in cyan is the ground-truth trajectory as received from
-Kitty's benchmark.
+KITTI's benchmark.
 
 <img src=README_Images/BundleAdjustmentPart/BundleResult.png >
 
