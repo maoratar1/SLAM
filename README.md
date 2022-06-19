@@ -219,6 +219,22 @@ In our project we will meet the following outliers' rejection policies:
 Currently, we can explain the `Rectification test` and the `Blurring`
 rejection policies, the other policies we will meet later. 
 
+#### Blurring
+Blurring the image may help with removing noises. Noise's environment tends to be unique, 
+therefore it's a good candidate for being a feature since detectors, at least some of them, 
+characterize a feature by its environment - the more unique its environment is, the more likely
+it is to be a feature.
+
+In our code we use the `Gaussian blurr` with kernel size of 11.
+```python
+import cv2
+img1 = cv2.GaussianBlur(img1, (kernel_size, kernel_size), 0)
+```
+
+> We had examined several kernels as 3, 5, 7, 9 and 11. Finally, we chose the one
+> with a good mean track and the total number of tracks. The term `track` will be explained
+> later, at the Database part.
+
 
 #### Rectification test
 Each frame consists of two stereo camera means that matching key points would be with the same 
