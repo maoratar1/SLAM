@@ -48,6 +48,14 @@ At the end of the project we will get a pretty food estimation for the car's
 trajectory while going through 3 stations: Deterministic estimation, Bundle Adjustment
 optimization and Loop Closure strengthening.
 
+### Runtime 
+Computing the first trajectory's estimation takes time of ~ 8 min.
+Building the database is similar. After that, Bundle Adjustment, with 
+multiprocessing, takes 3.5 min and the loop closure is about 3 min.
+Practically, the whole process can be done in a parallel so the total rum time
+is 8 min that is almost the real time of ~ 6 min.
+
+
 
 
 ## KITTI's Benchmark
@@ -65,13 +73,14 @@ KITTI's supplies for us:
 - Cameras' extrinsic matrices between left and right cameras 
 (Where the left camera is at the origin)
 - 3450 Frames.
-- Vehicle location during the ride.
+- Vehicle location during the ride - a ground truth to compare to.
 
 ### Stereo camera
 KITTI uses stereo camera with two or more lenses with a separate image sensor or
 film frame for each lens. This allows the camera to simulate human binocular vision, 
 and therefore gives it the ability to capture three-dimensional images. So In our project 
 when we say `Frame` when mean two images, for the left and the right cameras.
+
 
 ### Cameras' matrices
 Every camera has two matrices, extrinsic and intrinsic.
@@ -104,6 +113,11 @@ focal length at pixel units, Skew and Distortion.
 Those are KITTI's left and right camera extrinsic matrices and intrinsic matrix:
 
 <img src=README_Images/KITTI/KITTIcameras.png width="" height="">
+
+> You can see that there's that the left and right cameras are differ by their
+> x-axis's location where the right camera is 0.54 to the right. The way we conclude
+> that will be explained later under the sub subject of finding cameras' location
+> by its extrinsic camera.
 
 
 ### Projecting matrix
@@ -160,7 +174,7 @@ geometric map, topological map and others. In our project we will use the
 #### Point cloud
 
 A point cloud is a map that tells us about every coordinate in the world 
-if there is some object in that place, but it does not tell us if there is **not**
+if there is some object in that place, but it does not tell us if there is **no**
 object there.
 
 In order to create a point cloud we will use 2 concepts: `Images Matching` and `Triangulation`
@@ -196,13 +210,15 @@ in the matching process. In general, outliers rejection is a very important proc
 and especially in our project which uses the `Least Square` method and the assumption that our
 measures are `Normally distributed` that are very sensitive to outliers. 
 In our project we will meet the following outliers' rejection policies:
-1. Rectification test.
-2. Triangulation test.
-3. Significance test.
-4. Consensus match.
+1. Blurring.
+2. Rectification test.
+3. Triangulation.
+4. Significance test.
+5. Consensus match.
 
-Now we can explain the `Rectification test` rejection policy, the other
-policies we will meet later. 
+Currently, we can explain the `Rectification test` and the `Blurring`
+rejection policies, the other policies we will meet later. 
+
 
 #### Rectification test
 Each frame consists of two stereo camera means that matching key points would be with the same 
@@ -820,6 +836,7 @@ There are 7 freedom degree that are divided into 3 parts:
 2. Rotating - rotating the whole system.
 3. Translation - moving the system to other location.
 
+
 In the Kitty benchmark the scale is defined by the stereo camera baseline, so we
 need to determine the rotation and translation. We will do this by setting the first
 camera location.
@@ -1277,7 +1294,7 @@ So, we had printed cameras indicators at the first range, and we have got:
 <img src=README_Images/LoopClosure/189and9.png width="570" height="440">
 
 We can see that 189 and 9 are close, indeed when we look at their matching percentage
-we get 89% percentage:
+we get 95% percentage:
 
 <img src=README_Images/LoopClosure/189and9per.png width="600" height="450">
 
