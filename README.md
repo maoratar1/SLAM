@@ -1,7 +1,7 @@
 # SLAM project
 This project were taken under the course 
 "Computer vision based navigation" - 67604 that was given at the 
-Hebrew University of Jerusalem in 2023 by Mr David Arnon and Dr 
+Hebrew University of Jerusalem in 2022 by Mr David Arnon and Dr 
 Refael Vivanti.
 This is my [Hebrew summary](https://drive.google.com/file/d/19_4wjf477zzoSyrLiXZ66g6sY3s-dHds/view?usp=sharing)
 for the course.
@@ -48,14 +48,12 @@ At the end of the project we will get a pretty food estimation for the car's
 trajectory while going through 3 stations: Deterministic estimation, Bundle Adjustment
 optimization and Loop Closure strengthening.
 
-### Runtime 
+### Results and Runtime 
 Computing the first trajectory's estimation takes time of ~ 8 min.
 Building the database is similar. After that, Bundle Adjustment, with 
 multiprocessing, takes 3.5 min and the loop closure is about 3 min.
 Practically, the whole process can be done in a parallel so the total rum time
 is 8 min that is almost the real time of ~ 6 min.
-
-
 
 
 ## KITTI's Benchmark
