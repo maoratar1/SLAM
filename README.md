@@ -1084,8 +1084,8 @@ away all are frames, that are not key frames, and landmarks, so we are left with
 the key frames only, each one will be a vertex in a new `Factor Graph` 
 called `Pose Graph`.
 
-## Loop closure
-Loop closure is an algorithm for finding "loops" at a given trajectory graph. 
+## Loop Closure
+Loop Closure is an algorithm for finding "loops" at a given trajectory graph. 
 By saying "loop" we mean two cameras that has the same pose (up to some distance).
 The basic concept is that when we find a loop we actually add another constraint
 to are graph and by finding good loops we can "repair" are trajectory retroactively.
