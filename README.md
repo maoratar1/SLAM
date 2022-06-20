@@ -87,13 +87,6 @@ We've brought here the main topics only.
     - [Second and third step - Candidates validation and factors evaluation](#second-and-third-step---candidates-validation-and-factors-evaluation)
   - [Optimization process](#optimization-process)
 - [Comparisons while working](#comparisons-while-working)
-<!-- TOC end -->
-
-# Table of Contents  
-- [KITTI's Benchmark](#kittis-benchmark)
-- [Bundle Adjustment - First glimpse](#bundle-adjustment---first-glimpse)
-- [Estimate trajectory - Deterministic approach](#estimate-trajectory---deterministic-approach)
-- 
 
 ## KITTI's Benchmark
 <img src=README_Images/KITTI/KITTICar.png height='210' width='230' align='right'>
