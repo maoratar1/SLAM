@@ -96,6 +96,7 @@ We've brought here the main topics only.
 - 
 
 ## KITTI's Benchmark
+<img src=README_Images/KITTI/KITTICar.png height='210' width='230' align='right'>
 
 KITTI uses a car, includes some sensors, travelling around several streets
 in Germany. The sensors are stereo camera (color and black-white), GPS and
@@ -111,6 +112,10 @@ KITTI's supplies for us:
 (Where the left camera is at the origin)
 - 3450 Frames.
 - Vehicle location during the ride - a ground truth to compare to.
+
+For example, this is the first movie's frame:
+<img src=README_Images/KITTI/FirstFrame.png >
+
 
 ### Stereo camera
 KITTI uses stereo camera with two or more lenses with a separate image sensor or
