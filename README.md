@@ -59,9 +59,40 @@ Practically, the whole process can be done in parallel so the total rum time
 is 8 min that is as almost as the real time of ~ 6 min.
 
 -----
+# Table of contents
+We've brought here the main topics and omitted the less.
+* [KITTI's Benchmark](#kittis-benchmark)
+  + [Stereo camera](#stereo-camera)
+  + [Cameras' matrices](#cameras-matrices)
+  + [Projecting matrix](#projecting-matrix)
+* [Bundle Adjustment - First glimpse](#bundle-adjustment---first-glimpse)
+* [Estimate trajectory - Deterministic approach ](#estimate-trajectory---deterministic-approach)
+  + [Mapping](#mapping)
+  + [Images matching](#images-matching)
+  + [Outliers rejections policies](#outliers-rejections-policies)
+  - [Least square](#least-square)
+  + [Triangulation](#triangulation)
+  + [Localization](#localization)
+    - [PnP algorithm](#pnp-algorithm)
+    - [RANSAC](#ransac)
+    - [Consensus match](#consensus-match)
+  + [Localization - make it all together](#localization---make-it-all-together)
+* [Building feature's tracking Database](#building-features-tracking-database)
+
+* [Back to the Bundle Adjustment](#back-to-the-bundle-adjustment)
+  + [Factor graph](#factor-graph)
+* [Loop closure](#loop-closure)
+  * [Finding loops](#finding-loops)
+    + [First step - Find candidates by geometric intersection ](#first-step---find-candidates-by-geometric-intersection)
+    - [Second and third step - Candidates validation and factors evaluation](#second-and-third-step---candidates-validation-and-factors-evaluation)
+  - [Optimization process](#optimization-process)
+- [Comparisons while working](#comparisons-while-working)
+<!-- TOC end -->
 
 # Table of Contents  
 - [KITTI's Benchmark](#kittis-benchmark)
+- [Bundle Adjustment - First glimpse](#bundle-adjustment---first-glimpse)
+- [Estimate trajectory - Deterministic approach](#estimate-trajectory---deterministic-approach)
 - 
 
 ## KITTI's Benchmark
@@ -259,7 +290,7 @@ rectified_stereo_pattern_rej(img1_kpts, img2_kpts, matches)
 Now, that we have the ability to match between two key points at the frame, we 
 can perform the `Triangulation` operation. But, before that we should mention the `Least Square`
 
-#### Least square
+### Least square
 Least square is an algorithm that is used for fitting a model to a given data 
 when the data's amount is larger than the model's parameters and with the assumption
 that the data is noisy, this algorithm obtains the "closest", in meaning of Residual sum
@@ -1221,7 +1252,7 @@ finds a shortest path between them to compute the relative covariance for
 the mahalanobis distance calculation, and we choose only the 3 best 
 cameras of those who passed the distance threshold
 
-#### Second and third step - Candidates validation and factors evaluation
+### Second and third step - Candidates validation and factors evaluation
 Now that we have some good candidates we are ready to preform the consensus match
 method. On every candidate, we preform the consensus match method that tells us the
 match's inliers percentage between those images. We define some `INLIERS_THRESHOLD_PERC`
@@ -1256,7 +1287,7 @@ loop_prev_frames_tracks_tuples = pose_graph.find_loop_closure(cur_cam)
 again `loop_prev_frames_tracks_tuples` contains tuples of previous keyframes and
 tracks list.
 
-### Optimization process
+## Optimization process
 So we know how to find loops. Now we left with performing this process along the
 whole pose graph. We start with the first key frames and for every key frame, we
 find loops candidate, if we found loops, we add it to the factor and vertex graph and 
