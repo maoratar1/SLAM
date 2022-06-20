@@ -51,14 +51,18 @@ optimization and Loop Closure strengthening. As we can see at the following:
 <img src=README_Images/FinalRes.png >
 
 
-### Results and Runtime 
+### Running time 
 Computing the first trajectory's estimation takes a time of ~ 8 min.
 Building the database is similar. After that, Bundle Adjustment, with 
 multiprocessing, takes a 3.5 min and the loop closure is about a 3 min.
 Practically, the whole process can be done in parallel so the total rum time
 is 8 min that is as almost as the real time of ~ 6 min.
 
+-----
 
+# Table of Contents  
+- [KITTI's Benchmark](##kittis-benchmark)
+- 
 
 ## KITTI's Benchmark
 
