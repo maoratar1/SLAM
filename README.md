@@ -44,16 +44,20 @@ The data we are using is of KITTI's Benchmark Suite.
 In this project we are trying to estimate a trajectory of a moving car
 that has a stereo camera on its roof, and it is filming its travel route.
 
-At the end of the project we will get a pretty food estimation for the car's 
+At the end of the project we will get a pretty good estimation for the car's 
 trajectory while going through 3 stations: Deterministic estimation, Bundle Adjustment
-optimization and Loop Closure strengthening.
+optimization and Loop Closure strengthening. As we can see at the following:
+
+<img src=README_Images/FinalRes.png >
+
 
 ### Results and Runtime 
-Computing the first trajectory's estimation takes time of ~ 8 min.
+Computing the first trajectory's estimation takes a time of ~ 8 min.
 Building the database is similar. After that, Bundle Adjustment, with 
-multiprocessing, takes 3.5 min and the loop closure is about 3 min.
-Practically, the whole process can be done in a parallel so the total rum time
-is 8 min that is almost the real time of ~ 6 min.
+multiprocessing, takes a 3.5 min and the loop closure is about a 3 min.
+Practically, the whole process can be done in parallel so the total rum time
+is 8 min that is as almost as the real time of ~ 6 min.
+
 
 
 ## KITTI's Benchmark
@@ -420,8 +424,8 @@ to a transformation matrix.
 calibration or intrinsic matrix of the camera and `flag` is the cv2's `SOLVEPNP` method 
 that the `cv2.pnp()` is expected to get.
 >
-> `Rodirguez` vector is a 6dim vector that represent a camera pose by its 
-> euler angles and its 3d location with the order (azimut, pitch, roll, x, y, z)
+> `Rodirguez` vector is a way of
+> rotating a vector in space, by an axis and angle of rotation
 
 So, for using PnP method we need a point cloud that, as mentioned at the pseudocode,
 is done from the (i - 1)th frame and match each 3d point to a pixel at the ith frame
@@ -1240,7 +1244,7 @@ of tuples where the first element is the previous camera that match to the `cur_
 and the second element is a list of tracks that founds at the consensus and will
 serve us when computing the bundle.
 
-All this process of loops finding can be done by:
+All this process of loops finding is done by:
 ```python
 loop_prev_frames_tracks_tuples = pose_graph.find_loop_closure(cur_cam)
 ```
