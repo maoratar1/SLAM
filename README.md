@@ -60,7 +60,7 @@ is 8 min that is as almost as the real time of ~ 6 min.
 
 -----
 # Table of contents
-We've brought here the main topics and omitted the less.
+We've brought here the main topics only and omitted the others.
 * [KITTI's Benchmark](#kittis-benchmark)
   + [Stereo camera](#stereo-camera)
   + [Cameras' matrices](#cameras-matrices)
