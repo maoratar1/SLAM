@@ -111,10 +111,10 @@ For example, this is the first movie's frame:
 
 
 ### Stereo camera
-KITTI uses stereo camera with two or more lenses with a separate image sensor or
+Stereo camera is a camera with two or more lenses with a separate image sensor or
 film frame for each lens. This allows the camera to simulate human binocular vision, 
 and therefore gives it the ability to capture three-dimensional images. So In our project 
-when we say `Frame` when mean two images, for the left and the right cameras.
+when we say `Frame` we mean two images, for the left and the right cameras.
 
 
 ### Cameras' matrices
