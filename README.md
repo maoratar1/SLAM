@@ -1,5 +1,5 @@
 # SLAM project
-This project were taken under the course 
+This project was taken under the course 
 "Computer vision based navigation" - 67604 that was given at the 
 Hebrew University of Jerusalem in 2022 by Mr David Arnon and Dr 
 Refael Vivanti.
