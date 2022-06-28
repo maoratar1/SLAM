@@ -24,7 +24,7 @@ and due to the tangent function behavior in the range
 $\[0, \ {\pi \over 2\}]$
 it holds that for error of $\varepsilon$ and two angles 
 $\alpha > \beta$: 
-$tg(\alpha + \epsilon) \over tg(\alpha) > tg(\beta + \epsilon) \over tg(\beta)$. 
+${tg(\alpha + \epsilon) \over tg(\alpha)} > {tg(\beta + \epsilon) \over tg(\beta)}$. 
 Therefore inaccuracy of e is more dramatic at a larger angles. 
 
 
