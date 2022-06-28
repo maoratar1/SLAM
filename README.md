@@ -907,7 +907,15 @@ some, normally distributed with zero mean and identity covariance, noise.
 
 So by using those assumptions, bayes role and Cholesky decomposition we get:
 
-<img src=README_Images/BundleAdjustmentPart/BundleFormal.png >
+$$
+\arg\max_{C,Q}P\left(C,Q\mid Z\right)\overset{\text{i.d measures}}{=}\arg\max_{C,Q}\left(\prod_{c_{i}}\prod_{j\in M_{i}}p\left(z_{i,j}\mid c_{i},q_{j}\right)\right)\overset{\begin{matrix}\text{bayes role}\\
+\text{measure with normal dist}
+\end{matrix}}{=}\arg\max_{C,Q}\left(\prod_{c_{i}}\prod_{j\in M_{i}}\exp\left(-\frac{1}{2}\|\Delta z_{i,j}\|_{\Sigma}^{2}\right)\right)
+
+\overset{\begin{matrix}\text{-log}\\
+\text{Cholesky dec.}
+\end{matrix}}{=}\arg\min_{C,Q}\left(\sum_{c_{i}}\sum_{j\in M_{i}}\|\Sigma^{-\frac{1}{2}}\Delta z_{i,j}\|_{2}^{2}\right)
+$$
 
 >delta z is the re projection error mentioned above and is defined to be the difference 
 between the projection of landmark q_i on c_j and our measure z_{i,j}
