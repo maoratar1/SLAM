@@ -299,8 +299,8 @@ relations between the data and the value we want to predict, and the non linear 
 Formally, we can present the linear case as:
 
 $$
-\text{In general: }\arg\min_{x}\|Ax-b\|^{2}
-\text{Homogenous case: }\arg\min_{x}\|Ax-b\|^{2},\ \text{s.t }\|x\|^{2}=1
+In general: argmin_{x}\|Ax-b\|^{2}
+Homogenous case: argmin_{x}\|Ax-b\|^{2},\ s.t \|x\|^{2}=1
 $$
 
 
