@@ -908,7 +908,15 @@ some, normally distributed with zero mean and identity covariance, noise.
 So by using those assumptions, bayes role and Cholesky decomposition we get:
 
 $$
-\arg\max_{C,Q}P\left(C,Q\mid Z\right)\overset{\text{i.d measures}}{=}\arg\max_{C,Q}\left(\prod_{c_{i}}\prod_{j\in M_{i}}p\left(z_{i,j}\mid c_{i},q_{j}\right)\right)\overset{\begin{matrix}\text{bayes role}\\
+\arg\max_{C,Q}P\left(C,Q\mid Z\right)
+$$
+
+$$
+\overset{\text{i.d measures}}{=}\arg\max_{C,Q}\left(\prod_{c_{i}}\prod_{j\in M_{i}}p\left(z_{i,j}\mid c_{i},q_{j}\right)\right)
+$$
+
+$$
+\overset{\begin{matrix}\text{bayes role}\\
 \text{measure with normal dist}
 \end{matrix}}{=}\arg\max_{C,Q}\left(\prod_{c_{i}}\prod_{j\in M_{i}}\exp\left(-\frac{1}{2}\|\Delta z_{i,j}\|_{\Sigma}^{2}\right)\right)
 $$
