@@ -753,9 +753,11 @@ left 1, that we know by KITTI, with the transformation between left0 and left1.
 And mathematically speaking:
 
 Denote  $T_{world\to cam}\left(x\right)=R_{cam}\cdot x+t_{cam} $ So:
+
 $$
 T_{A\to C}\left(x\right)=T_{B\to C}\circ T_{A\to B}\left(x\right)=T_{B\to C}\left(R_{B}x+t_{B}\right)=R_{C}\left(R_{B}x+t_{B}\right)+t_{C}=R_{C}R_{B}x+R_{C}t_{B}+t_{C}
 $$
+
 So the extrinsic camera matrix is:  $\left\[R_{C}R_{B}\mid R_{C}t_{B}+t_{C}\right] $
 
 
