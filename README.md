@@ -6,9 +6,21 @@ Refael Vivanti.
 This is my [Hebrew summary](https://drive.google.com/file/d/19_4wjf477zzoSyrLiXZ66g6sY3s-dHds/view?usp=sharing)
 for the course.
 
-This matrix is simply, $K \cdot \[R \| t\]$. The extrinsic matrix, 
-$\[R \| t\]$, maps the 3d point from the world coordinates to camera's coordinates
-and K project the point to the image plane.
+$$
+\lambda_{1}p=PX\to\left[\begin{matrix}\lambda_{1}p_{x}\\
+\lambda_{1}p_{y}\\
+\lambda_{1}
+\end{matrix}\right]=\left[\begin{matrix}P_{row1}\\
+P_{row2}\\
+P_{row3}
+\end{matrix}\right]X\overset{\lambda_{1}=P_{row3}X}{\to}\left[\begin{matrix}P_{row3}\cdot p_{x}\\
+P_{row3}\cdot p_{y}
+\end{matrix}\right]X=\left[\begin{matrix}P_{row1}\\
+P_{row2}
+\end{matrix}\right]X\to\left[\begin{matrix}P_{row3}\cdot p_{x}-P_{row1}\\
+P_{row3}\cdot p_{y}-P_{row2}
+\end{matrix}\right]=0
+$$
 
 # tl;dr
 SLAM, shortcut of **S**imultaneous **L**ocalization **A**nd **M**apping, 
@@ -160,8 +172,8 @@ Those are KITTI's left and right camera extrinsic matrices and intrinsic matrix:
 
 ### Projecting matrix
 From those 2 matrices we can build a matrix which maps a 3d point at the **world coordinates**
-to the image plane. This matrix is simply, $K \cdot \[R | t\]$. The extrinsic matrix, $\[R | t\]$, 
-maps the 3d point from the world coordinates to camera's coordinates
+to the image plane. This matrix is simply, $K \cdot \[R \| t\]$. The extrinsic matrix, 
+$\[R \| t\]$, maps the 3d point from the world coordinates to camera's coordinates
 and K project the point to the image plane.
 
 > This idea of mapping between two Euclidean coordinates system is stems from the
