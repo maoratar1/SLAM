@@ -6,12 +6,6 @@ Refael Vivanti.
 This is my [Hebrew summary](https://drive.google.com/file/d/19_4wjf477zzoSyrLiXZ66g6sY3s-dHds/view?usp=sharing)
 for the course.
 
-In \ general:
-$$ argmin_{x}\|Ax-b\|^{2} $$
-And at the homogenous case 
-$$argmin_{x}\|Ax-b\|^{2},\ s.t \ \|x\|^{2}=1 $$
-
-
 # tl;dr
 SLAM, shortcut of **S**imultaneous **L**ocalization **A**nd **M**apping, 
 is a computational problem of constructing a map of an unknown
@@ -303,10 +297,13 @@ There are 2 cases of Least square, the linear case, where there is some linear
 relations between the data and the value we want to predict, and the non linear one.
 Formally, we can present the linear case as:
 
+In general:
+$$ argmin_{x}\|Ax-b\|^{2} $$
+And at the homogenous case 
+$$argmin_{x}\|Ax-b\|^{2},\ s.t \ \|x\|^{2}=1 $$
 
-<img src=README_Images/DeterministicApproach/LeastSquareDesc.png width="380" height="100">
 
-if b is not equal to zero the solutions go through the pseudo-inverse and if b = 0, 
+if b is not equal to zero the solutions go through the pseudo-inverse and if $ b = 0 $ , 
 the homogeneous case, We calculate A's SVD and the desired vector is **the last column
 of V**
 
