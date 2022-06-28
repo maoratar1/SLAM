@@ -987,7 +987,7 @@ as it called in GTSAM a `Pose3`, is a mapping from the camera coordinates to
 the world coordinates. So in order to work with gtsam we convert our
 transformation's directions. Mathematically we can do this by: 
 
-Let  $\ensuremath{X_{c}} $ a point at the camera coordinates and  $\ensuremath{X_{w}} $ at the world coordinates:
+Let  $X_{c} $ a point at the camera coordinates and  $X_{w} $ at the world coordinates:
 
 $$
 \left\[R\mid t\right]\left(\begin{matrix}X_{w}\\
