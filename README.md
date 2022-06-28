@@ -129,7 +129,7 @@ and by saying "camera coordinates" we mean a system where the camera is
 at the origin, x-axis point to right, y_axis points down and the z axis points to the front
 (see image on the right).
 The extrinsic matrix is a 4X3 matrix which consists from two matrices, 
-a Rotation and translation. and can be written as [R | t] where R is the rotation 3X3 matrix
+a Rotation and translation. and can be written as $[R | t]$ where R is the rotation 3X3 matrix
 and t is the 3x1 translation matrix. 
 > Image from the courtesy of David Arnon and Refael Vivanti
 
@@ -156,7 +156,7 @@ Those are KITTI's left and right camera extrinsic matrices and intrinsic matrix:
 
 ### Projecting matrix
 From those 2 matrices we can build a matrix which maps a 3d point at the **world coordinates**
-to the image plane. This matrix is simply, K * [R | t]. The extrinsic matrix, [R | t], 
+to the image plane. This matrix is simply, $K \cdot [R | t]$. The extrinsic matrix, $[R | t]$, 
 maps the 3d point from the world coordinates to camera's coordinates
 and K project the point to the image plane.
 
