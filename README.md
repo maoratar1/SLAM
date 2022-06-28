@@ -395,8 +395,7 @@ at the pixel's environment which is not influenced by the real location at the w
 Now, for simplicity lets assume that the triangulation's triangle is an 
 isosceles triangle with base angles of $\alpha$ and baseline $2m$, so we have that the
 object's distance from the camera equals to $X = {m \over tan(a)}$ so the distance depends on $tg(\alpha)$ 
-and due to the tangent function behavior in the range $\[0, \ \pi \over 2\]$  
-it holds that for error of $\epsilon$ and two angles $\alpha > \beta$: $tg(\alpha + \epsilon) \over tg(\alpha) > tg(\beta + \epsilon) \over tg(\beta). Therefore inaccuracy of e is more dramatic at a larger
+and due to the tangent function behavior in the range $\[0, \ {\pi \over 2\}]$ it holds that for error of $\varepsilon$ and two angles $\alpha > \beta$: $tg(\alpha + \epsilon) \over tg(\alpha) > tg(\beta + \epsilon) \over tg(\beta). Therefore inaccuracy of e is more dramatic at a larger
 angles. 
 
 Rejecting points with negative values is obviously but let's explain how such points are created.
