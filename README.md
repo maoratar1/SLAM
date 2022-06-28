@@ -6,22 +6,6 @@ Refael Vivanti.
 This is my [Hebrew summary](https://drive.google.com/file/d/19_4wjf477zzoSyrLiXZ66g6sY3s-dHds/view?usp=sharing)
 for the course.
 
-The reason for rejecting very far points is that although those point can be a good match, they
-are not providing us much information about their location because far points tends to 
-have a high
-inaccuracy of their triangulation estimation so for our future purposes we would prefer to 
-ignore them.
-The reason that far points error tend to get high values can be explained by the following:
-The key thing that causes the triangulation's error is the Feature detector inaccuracy and 
-by simply assuming that the detector inaccuracy over the image is even, means there is no 
-reason that far away points will have a higher inaccuracy than closer ones
-because after all they both are pixels in the image and the detectors are looking, basically, 
-at the pixel's environment which is not influenced by the real location at the world. 
-Now, for simplicity lets assume that the triangulation's triangle is an 
-isosceles triangle with base angles of $\alpha$ and baseline $2m$, so we have that the
-object's distance from the camera equals to  $X = {m \over tan(a)} $ so the distance depends on  $tg(\alpha) $  and due to the tangent function behavior in the range  $\[0, \ {\pi \over 2\}] $  it holds that for error of  $\varepsilon $  and two angles  $\alpha > \beta $:  $ {tg(\alpha + \varepsilon) \over tg(\alpha)} > {tg(\beta + \varepsilon) \over tg(\beta)} $. 
-Therefore inaccuracy of $\varepsilon $ is more dramatic at a larger angles. 
-
 
 # tl;dr
 SLAM, shortcut of **S**imultaneous **L**ocalization **A**nd **M**apping, 
@@ -410,9 +394,8 @@ because after all they both are pixels in the image and the detectors are lookin
 at the pixel's environment which is not influenced by the real location at the world. 
 Now, for simplicity lets assume that the triangulation's triangle is an 
 isosceles triangle with base angles of $\alpha$ and baseline $2m$, so we have that the
-object's distance from the camera equals to $X = {m \over tan(a)}$ so the distance depends on $tg(\alpha)$ 
-and due to the tangent function behavior in the range  $\[0, \ {\pi \over 2\}]$. it holds that for error of $\varepsilon$ and two angles $\alpha > \beta$: $tg(\alpha + \epsilon) \over tg(\alpha) > tg(\beta + \epsilon) \over tg(\beta). Therefore inaccuracy of e is more dramatic at a larger
-angles. 
+object's distance from the camera equals to  $X = {m \over tan(a)} $ so the distance depends on  $tg(\alpha) $  and due to the tangent function behavior in the range  $\[0, \ {\pi \over 2\}] $  it holds that for error of  $\varepsilon $  and two angles  $\alpha > \beta $:  $ {tg(\alpha + \varepsilon) \over tg(\alpha)} > {tg(\beta + \varepsilon) \over tg(\beta)} $. 
+Therefore inaccuracy of  $\varepsilon $ is more dramatic at a larger angles. 
 
 Rejecting points with negative values is obviously but let's explain how such points are created.
 Because the left camera is from the left of the right camera we suppose to
@@ -615,7 +598,18 @@ first point cloud to the coordinates' system of the second frame, and we've the 
 Now that we have in hand the transformation between frame (i - 1) to frame i we 
 can compute the ith camera location simply by:
 
-<img src=README_Images/DeterministicApproach/findloc.png width="390" height="110">
+$$
+R\left[\begin{matrix}x\\
+y\\
+z
+\end{matrix}\right]+t=0\to R\left[\begin{matrix}x\\
+y\\
+z
+\end{matrix}\right]=-t\overset{R\ is\ orthogonal}{\to}\left[\begin{matrix}x\\
+y\\
+z
+\end{matrix}\right]=-R^{T}\cdot t
+$$
 
 Where the first equation stems from that the Transformation we have got from the PnP
 transforms between world (Here it's the previous camera world) coordinates to the camera 
