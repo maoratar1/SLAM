@@ -8,8 +8,8 @@ for the course.
 
 
 $$
-In \ general: argmin_{x}\|Ax-b\|^{2} \\
-Homogenous case: argmin_{x}\|Ax-b\|^{2},\ s.t \|x\|^{2}=1
+In \ general: argmin_{x}\|Ax-b\|^{2} \\ 
+Homogenous \ case: argmin_{x}\|Ax-b\|^{2},\ s.t \|x\|^{2}=1
 $$
 
 
