@@ -8,7 +8,6 @@ for the course.
 
 This matrix is simply, $K \cdot \[R \| t\]$. The extrinsic matrix, 
 $\[R \| t\]$, 
-
 maps the 3d point from the world coordinates to camera's coordinates
 and K project the point to the image plane.
 
