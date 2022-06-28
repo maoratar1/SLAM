@@ -6,21 +6,6 @@ Refael Vivanti.
 This is my [Hebrew summary](https://drive.google.com/file/d/19_4wjf477zzoSyrLiXZ66g6sY3s-dHds/view?usp=sharing)
 for the course.
 
-$$
-\lambda_{1}p=PX\to\left[\begin{matrix}\lambda_{1}p_{x}\\
-\lambda_{1}p_{y}\\
-\lambda_{1}
-\end{matrix}\right]=\left[\begin{matrix}P_{row1}\\
-P_{row2}\\
-P_{row3}
-\end{matrix}\right]X\overset{\lambda_{1}=P_{row3}X}{\to}\left[\begin{matrix}P_{row3}\cdot p_{x}\\
-P_{row3}\cdot p_{y}
-\end{matrix}\right]X=\left[\begin{matrix}P_{row1}\\
-P_{row2}
-\end{matrix}\right]X\to\left[\begin{matrix}P_{row3}\cdot p_{x}-P_{row1}\\
-P_{row3}\cdot p_{y}-P_{row2}
-\end{matrix}\right]=0
-$$
 
 # tl;dr
 SLAM, shortcut of **S**imultaneous **L**ocalization **A**nd **M**apping, 
@@ -350,11 +335,31 @@ we get that the multiplication of P with X, at homogeneous coordinates, yields p
 with a linear equation system that can be represented as a matrix of 4X3. As 
 we can see for P:
 
-<img src=README_Images/DeterministicApproach/PX.png width="" height="">
+$$
+\lambda_{1}p=PX\to\left[\begin{matrix}\lambda_{1}p_{x}\\
+\lambda_{1}p_{y}\\
+\lambda_{1}
+\end{matrix}\right]=\left[\begin{matrix}P_{row1}\\
+P_{row2}\\
+P_{row3}
+\end{matrix}\right]X\overset{\lambda_{1}=P_{row3}X}{\to}\left[\begin{matrix}P_{row3}\cdot p_{x}\\
+P_{row3}\cdot p_{y}
+\end{matrix}\right]X=\left[\begin{matrix}P_{row1}\\
+P_{row2}
+\end{matrix}\right]X\to\left[\begin{matrix}P_{row3}\cdot p_{x}-P_{row1}\\
+P_{row3}\cdot p_{y}-P_{row2}
+\end{matrix}\right]=0
+$$
 
 Doing the same for Q and concatenating those equations we get:
 
-<img src=README_Images/DeterministicApproach/TriangulationEquations.png width="200" height="130">
+$$
+\left[\begin{matrix}P_{row3}\cdot p_{x}-P_{row1}\\
+P_{row3}\cdot p_{y}-P_{row2}\\
+Q_{row3}\cdot q_{x}-Q_{row1}\\
+q_{row3}\cdot q_{y}-Q_{row1}
+\end{matrix}\right]=0
+$$
 
 This linear system does not necessarily have a solution, which in geometrically meanings 
 it represents the case where the two rays does not intersect but crossed. 
@@ -388,11 +393,10 @@ reason that far away points will have a higher inaccuracy than closer ones
 because after all they both are pixels in the image and the detectors are looking, basically, 
 at the pixel's environment which is not influenced by the real location at the world. 
 Now, for simplicity lets assume that the triangulation's triangle is an 
-isosceles triangle with base angles of 'a' and baseline '2m', so we have that the
-object's distance from the camera equals to X = m / tan(a) so the distance depends on tg(a) 
-and due to the tangent function behavior in the range [0, pi / 2] 
-it holds that for error of 'e' and two angles 'a' > 'b' : 
-: tg(a + e) / tg(a) > tg(b + e) / tg(b). Therefore inaccuracy of e is more dramatic at a larger
+isosceles triangle with base angles of $\alpha$ and baseline $2m$, so we have that the
+object's distance from the camera equals to $X = {m \over tan(a)}$ so the distance depends on $tg(\alpha)$ 
+and due to the tangent function behavior in the range $\[0, \ \pi \over 2\]$  
+it holds that for error of $\epsilon$ and two angles $\alpha > \beta$: $tg(\alpha + \epsilon) \over tg(\alpha) > tg(\beta + \epsilon) \over tg(\beta). Therefore inaccuracy of e is more dramatic at a larger
 angles. 
 
 Rejecting points with negative values is obviously but let's explain how such points are created.
