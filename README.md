@@ -8,10 +8,10 @@ for the course.
 
 
 $$
-\begin{align}
+\begin{align='left'}
 In \ general: argmin_{x}\|Ax-b\|^{2} \\ 
 Homogenous \ case: argmin_{x}\|Ax-b\|^{2},\ s.t \ \|x\|^{2}=1 \\
-\end{align}
+\end{align = 'left'}
 $$
 
 
