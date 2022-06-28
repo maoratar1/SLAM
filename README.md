@@ -298,6 +298,12 @@ There are 2 cases of Least square, the linear case, where there is some linear
 relations between the data and the value we want to predict, and the non linear one.
 Formally, we can present the linear case as:
 
+$$
+\text{In general: }\arg\min_{x}\|Ax-b\|^{2}
+\text{Homogenous case: }\arg\min_{x}\|Ax-b\|^{2},\ \text{s.t }\|x\|^{2}=1
+$$
+
+
 <img src=README_Images/DeterministicApproach/LeastSquareDesc.png width="380" height="100">
 
 if b is not equal to zero the solutions go through the pseudo-inverse and if b = 0, 
