@@ -997,6 +997,8 @@ $$
 \end{matrix}\right)=X_{w}
 $$
 
+Therefore the desired trans is: $\left\[R^{T}\mid-R^{T}t\right] $
+
 This is done by the function:
 ```python
 from utils.utills import convert_ex_cam_to_cam_to_world
@@ -1197,14 +1199,18 @@ that "asks" what is the probability of one pose to be the other one,
 After we will have that error, per edge, we can represent the total graph error
 by the mahalanobis distance of that error from zero:
 
-<img src=README_Images/BundleAdjustmentPart/PoseGraphError.png >
+$$
+\arg\min_{x_{i},x_{j}}\sum_{i,j}\|e_{i,j}\|_{\Sigma}=\arg\min_{x_{i},x_{j}}\sum_{i,j}e_{i,j}^{T}\Sigma^{-1}e_{i,j}
+$$
 
 
 Here we calculate "How much two poses are closer" and by recalling that each pose
 can be converted to a transformation matrix and vice versa we can define the following 
 "metrix" :
 
-<img src=README_Images/BundleAdjustmentPart/PoseGraphErrorDefined.png>
+$$
+e_{i,j}\left(x_{i},x_{j}\right)=transformationToVector\left(Z_{i,j}^{-1}\left(X_{i}^{-1}X_{j}\right)\right)
+$$
 
 
 where `transformationToVector` convert a transformation matrix to a pose vector
@@ -1241,7 +1247,11 @@ Relative covariance estimation - There are two options:
 2. There is more than one path - let's assume two only.
 
 At the first case, we can use the covariance role which says that : 
-<img src=README_Images/BundleAdjustmentPart/SumCov.png >
+If  $x\sim N\left(\mu_{x},\Sigma_{x}\right)\ \wedge\ y\sim N\left(\mu_{y},\Sigma_{y}\right) $  Then:
+
+$$
+\Rightarrow x+y\sim N\left(\mu_{x}+\mu_{y},\Sigma_{x}+\Sigma_{y}\right)
+$$
 
 Where x and y represents our poses. We have to say that, of course, that summing
 poses is not doing by vector summing but because we are dealing with small bundles, 
@@ -1256,7 +1266,11 @@ At the second case, where we have two paths between C_i and C_n, its actually
 means that there are two estimation for the C_n - one from the first path
 and one from the other path. Here we can look at the next covariance role:
 
-<img src=README_Images/BundleAdjustmentPart/MultCov.png >
+If  $x\sim N\left(\mu_{x},\Sigma_{x}\right)\ \wedge\ y\sim N\left(\mu_{y},\Sigma_{y}\right) $ then
+
+$$
+x\cdot y\sim N\left(\left(\Sigma_{x}^{-1}+\Sigma_{y}^{-1}\right)^{-1}\left(\Sigma_{x}^{-1}\mu_{x}+\Sigma_{y}^{-1}\mu_{y}\right),\left(\Sigma_{x}^{-1}+\Sigma_{y}^{-1}\right)^{-1}\right)
+$$
 
 Since those measurements are independent we can look at their intersection 
 probability as a multiplication, and in that case the covariance is given above.
