@@ -6,7 +6,7 @@ Refael Vivanti.
 This is my [Hebrew summary](https://drive.google.com/file/d/19_4wjf477zzoSyrLiXZ66g6sY3s-dHds/view?usp=sharing)
 for the course.
 
-$K \cdot \[R | t\]$, . The extrinsic matrix, $\[R | t\]$, 
+$K \cdot \[R | t\]$. The extrinsic matrix, $\[R | t\]$, 
 
 # tl;dr
 SLAM, shortcut of **S**imultaneous **L**ocalization **A**nd **M**apping, 
