@@ -6,13 +6,10 @@ Refael Vivanti.
 This is my [Hebrew summary](https://drive.google.com/file/d/19_4wjf477zzoSyrLiXZ66g6sY3s-dHds/view?usp=sharing)
 for the course.
 
-
-$$
-\begin{align}
-$In \ general: $ argmin_{x}\|Ax-b\|^{2} \\ 
-Homogenous \ case: argmin_{x}\|Ax-b\|^{2},\ s.t \ \|x\|^{2}=1 \\
-\end{align}
-$$
+In \ general:
+$$ argmin_{x}\|Ax-b\|^{2} $$
+And at the homogenous case 
+$$argmin_{x}\|Ax-b\|^{2},\ s.t \ \|x\|^{2}=1 $$
 
 
 # tl;dr
