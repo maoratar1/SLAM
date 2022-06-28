@@ -663,9 +663,11 @@ probability of getting at least one outlier will be lower than 1 - P:
 $$
 \left(1-\left(1-\varepsilon\right)^{s}\right)^{N_{1}}<1-P
 $$
+
 $$
 \overset{\log}{\Rightarrow}\log\left(\left(1-\left(1-\varepsilon\right)^{s}\right)\right)\cdot N_{1}<\log\left(1-P\right)
 $$
+
 $$
 \overset{\log\left(\left(1-\left(1-\varepsilon\right)^{s}\right)\right)<0}{\Rightarrow}N_{1}>\frac{\log\left(1-P\right)}{\log\left(\left(1-\left(1-\varepsilon\right)^{s}\right)\right)}
 $$
