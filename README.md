@@ -7,9 +7,9 @@ This is my [Hebrew summary](https://drive.google.com/file/d/19_4wjf477zzoSyrLiXZ
 for the course.
 
 $$
-\begin(align)
+\begin{align}
 In general
-\end(align)
+\end{align}
 $$
 
 $$
