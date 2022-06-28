@@ -6,6 +6,15 @@ Refael Vivanti.
 This is my [Hebrew summary](https://drive.google.com/file/d/19_4wjf477zzoSyrLiXZ66g6sY3s-dHds/view?usp=sharing)
 for the course.
 
+\begin(align)
+In general
+\end(align)
+$$
+\begin(align)
+In general: argmin_{x}\|Ax-b\|^{2}
+Homogenous case: argmin_{x}\|Ax-b\|^{2},\ s.t \|x\|^{2}=1
+$$
+
 
 # tl;dr
 SLAM, shortcut of **S**imultaneous **L**ocalization **A**nd **M**apping, 
@@ -297,11 +306,6 @@ of squares, model to the desired one.
 There are 2 cases of Least square, the linear case, where there is some linear
 relations between the data and the value we want to predict, and the non linear one.
 Formally, we can present the linear case as:
-
-$$
-In general: argmin_{x}\|Ax-b\|^{2}
-Homogenous case: argmin_{x}\|Ax-b\|^{2},\ s.t \|x\|^{2}=1
-$$
 
 
 <img src=README_Images/DeterministicApproach/LeastSquareDesc.png width="380" height="100">
