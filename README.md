@@ -303,7 +303,7 @@ And at the homogenous case
 $$argmin_{x}\|Ax-b\|^{2},\ s.t \ \|x\|^{2}=1 $$
 
 
-if b is not equal to zero the solutions go through the pseudo-inverse and if $ b = 0 $ , 
+if b is not equal to zero the solutions go through the pseudo-inverse and if $b = 0$ , 
 the homogeneous case, We calculate A's SVD and the desired vector is **the last column
 of V**
 
