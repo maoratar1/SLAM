@@ -1,11 +1,15 @@
-import heapq
+import math
 import random
+import time
 
 import cv2
 import gtsam
 import numpy as np
 import tqdm
+from matplotlib import pyplot as plt
 
+import DataBaseDirectory.DataBase
+import utils.plot
 from DataDirectory import Data
 from DataBaseDirectory import Feature, Trck
 
@@ -16,14 +20,20 @@ K, M1, M2 = KITTI.get_K(), KITTI.get_M1(), KITTI.get_M2()
 
 IDX = 000000
 MATCHES_NUM = 20
-RATIO = 0.75
-MATCHES_NORM = cv2.NORM_L2
+RATIO = 0.6
+MATCHES_NORM = cv2.NORM_HAMMING2
 PASSED = "PASSED"
 FAILED = "FAILED"
 ALG = cv2.AKAZE_create()
 LEFT_CAM_TRANS_PATH = r'/Users/maoratar/opt/anaconda3/envs/Van_Ex1/VAN_ex/dataset/poses/00.txt'
 INLIER_COLOR = "orange"
 OUTLIER_COLOR = "cyan"
+BRUTE_FORCE = "BRUTE FORCE"
+REGULAR_KNN = "REGULAR KNN"
+FLANN_KNN = "FLANN KNN"
+MATCH_METHOD = BRUTE_FORCE
+TRIANGULATION_METERS_TO_PIX_DIFF = {450: 1, 250: 2, 150: 3, 120: 4, 90: 5}
+TRIANGULATION_REJ_METERS = 150
 IMAGE_HEIGHT = 376
 IMAGE_WIDTH = 1241
 PNP_NUM_PTS = 4
@@ -67,7 +77,12 @@ def knn_flann_matching(img1_dsc, img2_dsc):
     :param img2_dsc: image 2 descriptors
     :return: Array of matches
     """
-    index_params = dict(algorithm=1, trees=5)
+    FLANN_INDEX_LSH = 6
+    index_params = dict(algorithm=FLANN_INDEX_LSH,
+                        table_number=12,  # 12
+                        key_size=20,  # 20
+                        multi_probe_level=2)  # 2
+
     search_params = dict(checks=50)
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     matches = flann.knnMatch(img1_dsc, img2_dsc, k=2)
@@ -87,11 +102,20 @@ def knn_matching(metric, img1_dsc, img2_dsc):
     return matches
 
 
-def matching(img1_dsc, img2_dsc):  # Todo: we left those options for further checking
-    # matches = knn_matching(MATCHES_NORM, img1_dsc, img2_dsc)  # Notice does not return np array
-    # matches = knn_flann_matching(img1_dsc, img2_dsc)
-    # matches, _ = significance_test(matches, RATIO)  # Notice does not return np array
-    matches = bf_matching(MATCHES_NORM, img1_dsc, img2_dsc, sort=False)
+def match(img1_dsc, img2_dsc, method=MATCH_METHOD):  # Todo: we left those options for further checking
+    matches = []
+
+    if method is BRUTE_FORCE:
+        matches = bf_matching(MATCHES_NORM, img1_dsc, img2_dsc, sort=False)
+        return np.array(matches)
+
+    if method is REGULAR_KNN:
+        matches = knn_matching(MATCHES_NORM, img1_dsc, img2_dsc)  # Notice does not return np array
+
+    if method is FLANN_KNN:
+        matches = knn_flann_matching(img1_dsc, img2_dsc)
+
+    matches, _ = significance_test(matches, RATIO)  # Notice does not return np array
     return np.array(matches)
 
 
@@ -100,7 +124,7 @@ def detect_and_match(img1, img2):
     img1_kpts, img1_dsc, img2_kpts, img2_dsc = feature_detection_and_description(img1, img2, ALG)
 
     # Matches between the KITTI and plots the matching
-    matches = matching(img1_dsc, img2_dsc)
+    matches = match(img1_dsc, img2_dsc)
     return img1_kpts, img1_dsc, img2_kpts, img2_dsc, matches
 
 
@@ -242,7 +266,7 @@ def compute_trans_between_cur_to_next(left0_kpts, left0_dsc, right0_kpts,
    """
 
     # Find matches between left0 and left1
-    left0_left1_matches = matching(left0_dsc, left1_dsc)
+    left0_left1_matches = match(left0_dsc, left1_dsc)
 
     # Find key pts that match in all 4 KITTI
     rec0_dic = create_rec_dic(pair0_matches, pair0_rec_matches_idx)  # dict of {left kpt idx: pair rec id}
@@ -259,14 +283,104 @@ def compute_trans_between_cur_to_next(left0_kpts, left0_dsc, right0_kpts,
                                                                right1_kpts)
 
     # Find the best transformation between left0 and left1 with ransac
-    best_left1_cam_mat, max_supp_group_idx = online_est_pnp_ransac(PNP_NUM_PTS, pair0_p3d_pts,
-                                                                   M1, left0_matches_coor,
-                                                                   M2, right0_matches_coor,
-                                                                   left1_matches_coor,
-                                                                   M2, right1_matches_coor,
-                                                                   K, acc=SUPP_ERR)
+    best_left1_cam_mat, max_supp_group_indicators = online_est_pnp_ransac(PNP_NUM_PTS, pair0_p3d_pts,
+                                                                          M1, left0_matches_coor,
+                                                                          M2, right0_matches_coor,
+                                                                          left1_matches_coor,
+                                                                          M2, right1_matches_coor,
+                                                                          K, acc=SUPP_ERR)
 
-    return best_left1_cam_mat, max_supp_group_idx
+    return best_left1_cam_mat, max_supp_group_indicators
+
+
+def check_feature_det_algs(alg, alg_name, match_method, match_method_name, norm):
+    ALG = alg
+    MATCH_METHOD = match_method
+    MATCHES_NORM = norm
+
+    print(alg_name)
+    T_arr, whole_time = compute_whole_movie_time()
+    print("Time: ", whole_time)
+
+    relative_trans = convert_trans_from_rel_to_global(T_arr)
+    relative_cameras_pos_arr = left_cameras_trajectory(relative_trans)
+
+    T_ground_truth_arr = get_ground_truth_transformations()
+    ground_truth_relative_cameras_pos_arr = left_cameras_trajectory(T_ground_truth_arr)
+
+    utils.plot.plot_compare_left_cam_2d_trajectory_to_ground_truth_params(relative_cameras_pos_arr,
+                                                                          ground_truth_relative_cameras_pos_arr,
+                                                                          alg_name, match_method_name, whole_time)
+
+
+def plot_traj(T_arr, alg_name, match_method_name):
+    relative_trans = convert_trans_from_rel_to_global(T_arr)
+    relative_cameras_pos_arr = left_cameras_trajectory(relative_trans)
+
+    T_ground_truth_arr = get_ground_truth_transformations()
+    ground_truth_relative_cameras_pos_arr = left_cameras_trajectory(T_ground_truth_arr)
+
+    utils.plot.plot_compare_left_cam_2d_trajectory_to_ground_truth_params(relative_cameras_pos_arr,
+                                                                          ground_truth_relative_cameras_pos_arr,
+                                                                          alg_name, match_method_name, 0)
+
+
+def deterministic_traj(db):
+    left_cameras_pos, left_cameras_pos_gt = cameras_rel_pnp_est_and_ground_truth_locations(db)
+
+    fig = plt.figure()
+
+    ax = fig.add_subplot()
+    title1 = f"Left cameras 2d trajectory compared to ground truth of " \
+             f"DataBase: {DataBaseDirectory.DataBase.LOADED_DB_PATH}"
+    title2 = f"Left cameras 2d trajectory compared to ground truth of YZ plane"
+    ax.set_title(title2)
+    ax.scatter(left_cameras_pos[:, 1], left_cameras_pos[:, 2], s=1, c='red', label="PnP estimate")
+    ax.scatter(left_cameras_pos_gt[:, 1], left_cameras_pos_gt[:, 2], s=1, c='cyan', label="Ground truth")
+    a = [i for i in range(0, len(left_cameras_pos), 500)]
+    ax.scatter(left_cameras_pos_gt[:, 1][a], left_cameras_pos_gt[:, 2][a], s=3, c='black')
+    ax.scatter(left_cameras_pos[:, 1][a], left_cameras_pos[:, 2][a], s=3, c='black')
+    plt.legend(loc="upper left")
+
+    fig.savefig(f"Results/Compare Left cameras 2d trajectory {DataBaseDirectory.DataBase.DB_NAME}.png")
+    plt.close(fig)
+
+
+def compute_initial_est_traj():
+    rel_initial_est = Data.DB.get_relative_cam_trans()
+    global_initial_est = convert_trans_from_rel_to_global(rel_initial_est)
+    relative_cameras_pos_arr = left_cameras_trajectory(global_initial_est)
+    return relative_cameras_pos_arr
+
+
+def compute_ground_truth_traj():
+    T_ground_truth_arr = get_ground_truth_transformations()
+    ground_truth_relative_cameras_pos_arr = left_cameras_trajectory(T_ground_truth_arr)
+    return ground_truth_relative_cameras_pos_arr
+
+
+def compute_whole_movie_time(first_left_ex_mat=M1):
+    """
+    Compute whole movie computation time
+    """
+    t0 = time.perf_counter()
+    # T_arr = whole_movie(first_left_ex_mat)  #Todo: check the difference between whole movie to consec
+    _, _, _, T_arr = find_features_in_consecutive_frames_whole_movie()
+    t1 = time.perf_counter() - t0
+    return T_arr, t1 / 60
+
+
+def check_feature_det_algs_with_data_base(alg_name, match_method):
+    T_arr = Data.DB.get_relative_cam_trans()
+    relative_trans = convert_trans_from_rel_to_global(T_arr)
+    relative_cameras_pos_arr = left_cameras_trajectory(relative_trans)
+
+    T_ground_truth_arr = get_ground_truth_transformations()
+    ground_truth_relative_cameras_pos_arr = left_cameras_trajectory(T_ground_truth_arr)
+
+    utils.plot.compare_left_cam_2d_trajectory_to_ground_truth_params(relative_cameras_pos_arr,
+                                                                     ground_truth_relative_cameras_pos_arr,
+                                                                     alg_name, match_method, time=8.2)
 
 
 def read_and_rec_match(frame_num):
@@ -368,43 +482,38 @@ def online_est_pnp_ransac(model_parm_num, world_p3d_pts,
     :return: Extrinsic left1 camera matrix
     """
     # Basic variables
-    max_supp, max_supp_group_idx = -1, None
+    max_supp_num, max_supp_group_indicators = -1, None
     inliers_num, outliers_num = 0, 0
     first_loop_iter = 0
     first_loop_iter_est = lambda prob, outliers_perc: np.log(1 - prob) / np.log(
         1 - np.power(1 - outliers_perc, model_parm_num))
-    outliers_perc, prob = 0.99, 0.99
+    outliers_perc, prob = 0.99, 0.9999
+    max_iterations = 1e3
 
     # Compute pair0 camera's projection matrices
     # left0_proj_mat = calib_mat @ left0_ex_mat
     # right0_proj_mat = calib_mat @ right0_ex_mat
 
     # Ransac loop
-    while outliers_perc != 0 and first_loop_iter < first_loop_iter_est(prob, outliers_perc) and first_loop_iter < 1000:
+    while outliers_perc != 0 and first_loop_iter < first_loop_iter_est(prob,
+                                                                       outliers_perc) and first_loop_iter < max_iterations:
 
-        # Get randomize d2_points with amount of "model_param_num" and estimate the model by them
+        # Draw d2_points with amount of "model_param_num" and estimate the model by them
         pts_idx = np.random.randint(0, len(left1_matches_coor), model_parm_num)
         left1_ex_mat = pnp(world_p3d_pts[pts_idx], left1_matches_coor[pts_idx], calib_mat, cv2.SOLVEPNP_AP3P)
+
         # Sanity check
         if left1_ex_mat is None:
             continue
 
-        # Compute left1 and right1 projection matrices
-        right1_to_left0_ex_mat = compose_transformations(left1_ex_mat, right1_to_left1_ex_mat)
-        left1_proj_mat = calib_mat @ left1_ex_mat
-        right1_proj_mat = calib_mat @ right1_to_left0_ex_mat
-
-        # Find model's supporters
-        supporters_idx = find_supporters_4_frame(world_p3d_pts,
-                                                 left1_proj_mat, left1_matches_coor,
-                                                 right1_proj_mat, right1_matches_coor,
-                                                 acc=acc)
+        trans_supp_indicators = consensus_match(calib_mat, left1_ex_mat, right1_to_left1_ex_mat, world_p3d_pts,
+                                                left1_matches_coor, right1_matches_coor, acc)
 
         # Check which model is the best
-        num_supp = len(supporters_idx)
-        if num_supp > max_supp:
-            max_supp = num_supp
-            max_supp_group_idx = supporters_idx
+        num_supp = sum(trans_supp_indicators)
+        if num_supp > max_supp_num:
+            max_supp_num = num_supp
+            max_supp_group_indicators = trans_supp_indicators
 
         first_loop_iter += 1
 
@@ -414,13 +523,29 @@ def online_est_pnp_ransac(model_parm_num, world_p3d_pts,
         outliers_perc = min(outliers_num / (inliers_num + outliers_num), 0.99)
 
     # Refine the model by estimating the model by all d2_points
-    best_T = extra_refine(max_supp_group_idx, world_p3d_pts, left1_matches_coor, right1_to_left1_ex_mat,
-                          right1_matches_coor, calib_mat, acc, it_num=1)
+    best_T, new_max_supp_group_indicators = extra_refine(max_supp_group_indicators, world_p3d_pts,
+                                                         left1_matches_coor, right1_to_left1_ex_mat,
+                                                         right1_matches_coor, calib_mat, acc, it_num=1)
 
-    return best_T, max_supp_group_idx
+    return best_T, max_supp_group_indicators
 
 
-def extra_refine(supp_idx, world_p3d_pts,
+def consensus_match(calib_mat, left1_ex_mat, right1_to_left1_ex_mat, world_p3d_pts,
+                    left1_matches_coor, right1_matches_coor, acc):
+    # Compute left1 and right1 projection matrices
+    right1_to_left0_ex_mat = compose_transformations(left1_ex_mat, right1_to_left1_ex_mat)
+    left1_proj_mat = calib_mat @ left1_ex_mat
+    right1_proj_mat = calib_mat @ right1_to_left0_ex_mat
+
+    # Find model's supporters
+    all_supp_indicators = find_supporters_4_frame(world_p3d_pts,
+                                                  left1_proj_mat, left1_matches_coor,
+                                                  right1_proj_mat, right1_matches_coor,
+                                                  acc=acc)
+    return all_supp_indicators
+
+
+def extra_refine(supp_indicators, world_p3d_pts,
                  left1_matches_coor,
                  right1_to_left1_ex_mat, right1_matches_coor,
                  calib_mat=K, acc=SUPP_ERR, it_num=1):
@@ -428,30 +553,22 @@ def extra_refine(supp_idx, world_p3d_pts,
     Apply the model refining several times. Estimate model from inliers and inliers from model
     """
 
-    left1_ex_mat = None
+    left1_ex_mat, trans_supp_indicators = None, [False] * len(supp_indicators)
 
-    if len(supp_idx) < 6:  # Todo: TRyuing to dealing twith bad match
-        return []
+    if sum(supp_indicators) < 6:  # Todo: Trying to dealing with bad match
+        return None, trans_supp_indicators
 
     for i in range(it_num):
-        left1_ex_mat = pnp(world_p3d_pts[supp_idx], left1_matches_coor[supp_idx], calib_mat,
+        left1_ex_mat = pnp(world_p3d_pts[supp_indicators], left1_matches_coor[supp_indicators], calib_mat,
                            flag=cv2.SOLVEPNP_ITERATIVE)
         # Sanity check
         if left1_ex_mat is None:
             continue
 
-        # Compute left1 and right1 projection matrices
-        right1_to_left0_ex_mat = compose_transformations(left1_ex_mat, right1_to_left1_ex_mat)
-        left1_proj_mat = calib_mat @ left1_ex_mat
-        right1_proj_mat = calib_mat @ right1_to_left0_ex_mat
+        trans_supp_indicators = consensus_match(calib_mat, left1_ex_mat, right1_to_left1_ex_mat, world_p3d_pts,
+                                                left1_matches_coor, right1_matches_coor, acc)
 
-        # Find model's supporters
-        supp_idx = find_supporters_4_frame(world_p3d_pts,
-                                           left1_proj_mat, left1_matches_coor,
-                                           right1_proj_mat, right1_matches_coor,
-                                           acc=acc)
-
-    return left1_ex_mat
+    return left1_ex_mat, trans_supp_indicators
 
 
 def rodriguez_to_mat(R_vec, t_vec):
@@ -499,6 +616,28 @@ def gtsam_relative_camera_pos(ex_cam_mat):
     return ex_cam_mat.translation()
 
 
+def gtsam_relative_camera_angles(ex_cam_mat):
+    """
+    Finds and returns the Camera position at the "world" d2_points
+    :param ex_cam_mat: [Rotation mat|translation vec]
+    """
+    # R = extrinsic_camera_mat[:, :3]
+    # t = extrinsic_camera_mat[:, 3]
+    rot = ex_cam_mat.rotation()
+    return rot_mat_to_euler_angles(
+        np.hstack((rot.column(1).reshape(3, 1), rot.column(2).reshape(3, 1), rot.column(3).reshape(3, 1))))
+
+
+def camera_angles(ex_cam_mat):
+    """
+    Finds and returns the Camera position at the "world" d2_points
+    :param ex_cam_mat: [Rotation mat|translation vec]
+    """
+    # R = extrinsic_camera_mat[:, :3]
+    # t = extrinsic_camera_mat[:, 3]
+    return rot_mat_to_euler_angles(ex_cam_mat[:, :3])
+
+
 def relative_camera_pos_4(left0_ex_mat, right0_ex_mat, left1_ex_mat, right1_ex_mat):
     """
     Finds and returns the Camera position at the "world" d2_points of two stereo KITTI
@@ -509,6 +648,12 @@ def relative_camera_pos_4(left0_ex_mat, right0_ex_mat, left1_ex_mat, right1_ex_m
     left1_pos = relative_camera_pos(left1_ex_mat)
     right1_pos = relative_camera_pos(right1_ex_mat)
     return left0_pos, right0_pos, left1_pos, right1_pos
+
+
+def between(first_cam, second_cam):
+    inv_first = convert_ex_cam_to_cam_to_world(first_cam)
+    composed = compose_transformations(inv_first, second_cam)
+    return composed
 
 
 def compose_transformations(first_ex_mat, second_ex_mat):
@@ -534,7 +679,7 @@ def find_supporters_4_frame(pair0_p3d_pts,
     :param left0_proj_mat: Left0 projection camera matrix: K[R|t]
     :param left0_matches_coor: Corresponds pixel location in the image plane to the 3d d2_points
     :param acc: Accuracy - distance from 3d point projection to correspond left0 pixel
-    :return: Supporters indexes from left1 matches d2_points
+    :return: Bolean list where each elements indicates whether it's a supporter or not
     """
     # Finds the projection of the 3d d2_points to the KITTI plane
     left1_proj = project(pair0_p3d_pts, left1_proj_mat)
@@ -545,10 +690,9 @@ def find_supporters_4_frame(pair0_p3d_pts,
     right1_supp_indicator = check_projection(right1_proj, right1_matches_coor, acc)
 
     # Finds the 3d d2_points that satisfies all the conditions
-    all_supp_indicators = left1_supp_indicator & right1_supp_indicator  # Todo: checking now
-    supporters_idx = np.where(all_supp_indicators == 1)[0]
+    all_supp_indicators = left1_supp_indicator & right1_supp_indicator
 
-    return supporters_idx
+    return all_supp_indicators
 
 
 def project(p3d_pts, cam_proj_mat):
@@ -572,13 +716,18 @@ def check_projection(img_projected_pts, img_pts_coor, acc=SUPP_ERR):
     return left0_dist <= q_acc
 
 
-def compute_square_dist(pts_lst1, pts_lst2, dim="3d"):
+def compute_square_dist(pts_lst1, pts_lst2=None, dim="3d"):
     """
     Check the euclidean dist between the projected d2_points and correspond pixel locations
     :param pts_lst1:
     :param pts_lst2:
     :return:
     """
+    squared_dist = 0
+
+    if pts_lst2 is None:
+        pts_lst2 = np.zeros(pts_lst1.shape)
+
     pts_sub = pts_lst1 - pts_lst2  # (x1, y1), (x2, y2) -> (x1 - x2, y1 - y2)
     if dim == "2d":
         squared_dist = np.einsum("ij,ij->i", pts_sub, pts_sub)  # (x1 - x2)^2 + (y1 - y2)^2
@@ -587,7 +736,12 @@ def compute_square_dist(pts_lst1, pts_lst2, dim="3d"):
     return squared_dist
 
 
-def euclidean_dist(pts_lst1, pts_lst2, dim="3d"):
+def euclidean_dist(pts_lst1, pts_lst2=None, dim="3d"):
+    """
+    Computes euclidean distance between two list point wise
+    :param dim: 2d or 3d
+    :return: euclidean dist list if pts_lst2 is None it returns the distance from the origin
+    """
     squared_dist = compute_square_dist(pts_lst1, pts_lst2, dim=dim)
     return np.sqrt(squared_dist)
 
@@ -652,6 +806,30 @@ def gtsam_left_cameras_trajectory(relative_T_arr):
     return np.array(global_cam_loc)
 
 
+def gtsam_left_cameras_angles(relative_T_arr):
+    """
+    Computes the left cameras 3d angles relative to the starting position
+    :param T_arr: relative to first camera transformations array
+    :return: numpy array with dimension num T_arr X 3
+    """
+    global_cam_angles = []
+    for t in relative_T_arr:
+        global_cam_angles.append(gtsam_relative_camera_angles(t))
+    return np.array(global_cam_angles)
+
+
+def left_cameras_angles(global_trans):
+    """
+    Computes the left cameras 3d angles relative to the starting position
+    :param global_trans: global transformations array
+    :return: numpy array with dimension num T_arr X 3
+    """
+    global_cam_angles = []
+    for t in global_trans:
+        global_cam_angles.append(camera_angles(t))
+    return np.array(global_cam_angles)
+
+
 # === Ex4 === #
 def find_features_in_consecutive_frames_whole_movie(first_left_ex_cam_mat=M1):
     """
@@ -672,14 +850,15 @@ def find_features_in_consecutive_frames_whole_movie(first_left_ex_cam_mat=M1):
     for i in tqdm.tqdm(range(1, MOVIE_LEN)):
         left1_kpts, left1_dsc, right1_kpts, pair1_matches, pair1_rec_matches_idx = read_and_rec_match(frame_num=i)
 
-        trans, frame0_features, frame1_features, frame0_inliers_percentage, supporters_idx = \
+        trans, frame0_features, frame1_features, frame0_inliers_percentage, supporters_indicators = \
             find_features_in_consecutive_frames(
                 left0_kpts, left0_dsc, right0_kpts,
                 pair0_matches, pair0_rec_matches_idx,
                 left1_kpts, left1_dsc, right1_kpts,
                 pair1_matches, pair1_rec_matches_idx)
 
-        frame0_features, frame1_features = frame0_features[supporters_idx], frame1_features[supporters_idx]
+        frame0_features, frame1_features = frame0_features[supporters_indicators], frame1_features[
+            supporters_indicators]
 
         left0_kpts, left0_dsc, right0_kpts, pair0_matches, pair0_rec_matches_idx = left1_kpts, left1_dsc, \
                                                                                    right1_kpts, pair1_matches, \
@@ -703,45 +882,82 @@ def find_features_in_consecutive_frames(left0_kpts, left0_dsc, right0_kpts,
    :return: Numpy array of Feature object from frame0 and frame1 that passed the consensus match
    """
 
-    # Find matches between left0 and left1
-    left0_left1_matches = matching(left0_dsc, left1_dsc)
-
-    # Find key pts that match in all 4 KITTI
-    rec0_dic = create_rec_dic(pair0_matches, pair0_rec_matches_idx)  # dict of {left kpt idx: pair rec id}
-    rec1_dic = create_rec_dic(pair1_matches, pair1_rec_matches_idx)
-    q_pair0_idx, q_pair1_idx, q_left0_left1_idx = find_kpts_in_all_4_rec(left0_left1_matches, rec0_dic, rec1_dic)
+    tracked_pair0_matches, tracked_pair1_matches = tracking_4images(left0_dsc, left1_dsc,
+                                                                    pair0_matches, pair0_rec_matches_idx,
+                                                                    pair1_matches, pair1_rec_matches_idx)
 
     # Get frame 0 Feature objects (which passed the rec test)
-    frame0_features = get_feature_obj(pair0_matches[q_pair0_idx], left0_kpts, right0_kpts)
+    frame0_features = get_feature_obj(tracked_pair0_matches, left0_kpts, right0_kpts)
 
-    # Here we take only their d2_points
+    # Get frame 1 Feature objects  (which passed the rec test)
+    frame1_features = get_feature_obj(tracked_pair1_matches, left1_kpts, right1_kpts)
+
+    # Here we take only frame 0 features images pixels
     left0_matches_coor = get_features_left_coor(frame0_features)
     right0_matches_coor = get_features_right_coor(frame0_features)
+
+    # Far or opposite points rejection policy
+    # triangulation_good_points = far_or_neg_pts_rej(left0_matches_coor, right0_matches_coor)
+    # left0_matches_coor = left0_matches_coor[triangulation_good_points]
+    # right0_matches_coor = right0_matches_coor[triangulation_good_points]
+    # frame0_features = frame0_features[triangulation_good_points]
+    # frame1_features = frame1_features[triangulation_good_points]
 
     # Frame 0 triangulation
     pair0_p3d_pts = triangulate(K @ M1, K @ M2, left0_matches_coor, right0_matches_coor)
 
-    # Get frame 1 Feature objects  (which passed the rec test)
-    frame1_features = get_feature_obj(pair1_matches[q_pair1_idx], left1_kpts, right1_kpts)
-
-    # Notice that frame0_features and frame1_features are sharing indexes
-
     # Here we take only their d2_points
+    # Notice that frame0_features and frame1_features are sharing indexes
     left1_matches_coor = get_features_left_coor(frame1_features)
     right1_matches_coor = get_features_right_coor(frame1_features)
 
     # Finds Feature's indexes of frame0_features and frame1_features that passed the consensus match
     # with using Ransac method
-    trans, max_supp_group_idx = online_est_pnp_ransac(PNP_NUM_PTS, pair0_p3d_pts,
-                                                      M1, left0_matches_coor,
-                                                      M2, right0_matches_coor,
-                                                      left1_matches_coor,
-                                                      M2, right1_matches_coor,
-                                                      K, acc=SUPP_ERR)
+    trans, max_supp_group_indicators = online_est_pnp_ransac(PNP_NUM_PTS, pair0_p3d_pts,
+                                                             M1, left0_matches_coor,
+                                                             M2, right0_matches_coor,
+                                                             left1_matches_coor,
+                                                             M2, right1_matches_coor,
+                                                             K, acc=SUPP_ERR)
 
-    frame0_inliers_percentage = 100 * len(max_supp_group_idx) / len(frame0_features)
+    frame0_inliers_percentage = 100 * sum(max_supp_group_indicators) / len(max_supp_group_indicators)
 
-    return trans, frame0_features, frame1_features, frame0_inliers_percentage, max_supp_group_idx
+    return trans, frame0_features, frame1_features, frame0_inliers_percentage, max_supp_group_indicators
+
+
+def far_or_neg_pts_rej(left0_matches_coor, right0_matches_coor):
+    """
+    Rejects points that are far or are behind the camera
+    :return: Indexes that passed the test
+    """
+    diff_matches = left0_matches_coor[:, 0] - right0_matches_coor[:, 0]  # Notice left image x's values suppose
+    # to be greater that right x's
+    closer_pts = diff_matches > TRIANGULATION_METERS_TO_PIX_DIFF[TRIANGULATION_REJ_METERS]
+    positive_pts = diff_matches > 0
+    return closer_pts * positive_pts
+
+
+def compare_dbs_median_tracks_len(db_path, percentage):
+    db = DataBaseDirectory.DataBase.load(db_path)
+    return db.tracks_median_len(percentage)
+
+
+def tracking_4images(left0_dsc, left1_dsc, pair0_matches, pair0_rec_matches_idx,
+                     pair1_matches, pair1_rec_matches_idx):
+    """
+    This function performs tracking between two frames at all 4 images
+    :return:
+    """
+    # Find matches between left0 and left1
+    left0_left1_matches = match(left0_dsc, left1_dsc)
+
+    # Find key pts that match in all 4 KITTI
+    rec0_dic = create_rec_dic(pair0_matches, pair0_rec_matches_idx)  # dict of {left kpt idx: pair rec id}
+    rec1_dic = create_rec_dic(pair1_matches, pair1_rec_matches_idx)
+    tracked_pair0_idx, tracked_pair1_idx, _ = find_kpts_in_all_4_rec(left0_left1_matches, rec0_dic, rec1_dic)
+
+    # Returns all matches in pair 0 and pair 1 which are tracked in all four images
+    return pair0_matches[tracked_pair0_idx], pair1_matches[tracked_pair1_idx]
 
 
 def get_feature_obj(matches, img1_kpts, img2_kpts):
@@ -820,25 +1036,18 @@ def convert_ex_cam_to_cam_to_world(ex_cam):
 
 def convert_gtsam_ex_cam_to_world_to_cam(gtsam_ex_cam):
     gtsam_R = gtsam_ex_cam.rotation()
-    R_mat = np.hstack((gtsam_R.column(1).reshape(3, 1),
-                       (gtsam_R.column(2).reshape(3, 1),
-                       (gtsam_R.column(3).reshape(3, 1)))))
+    R_mat = np.hstack((gtsam_R.column(1).reshape(3, 1), gtsam_R.column(2).reshape(3, 1), gtsam_R.column(3).reshape(3, 1)))
 
     t_vec = gtsam_ex_cam.translation()
 
     R = R_mat.T
     t = - R_mat.T @ t_vec
 
-    ex_cam_mat_from_world_to_cam = np.hstack((R, t.reshape(3, 1)))  # Todo: check concatenation
-
+    ex_cam_mat_from_world_to_cam = np.hstack((R, t.reshape(3, 1)))
     return ex_cam_mat_from_world_to_cam
 
 
-
 # ===== Ex7
-def create_empty_min_heap():
-    return heapq.heapify([])
-
 
 def mahalanobis_dist(delta, cov):
     r_squared = delta.T @ np.linalg.inv(cov) @ delta
@@ -860,18 +1069,21 @@ def gtsam_cams_delta(first_cam_mat, second_cam_mat):
     return gtsam_translation_to_vec(gtsam_rel_trans.rotation(), gtsam_rel_trans.translation())  # Todo : check if its ok
 
 
-def rot_mat_to_euler_angles(R_mat):  # todo: change this function
-    sy = np.sqrt(R_mat[0, 0] * R_mat[0, 0] + R_mat[1, 0] * R_mat[1, 0])
+def rot_mat_to_euler_angles(R_mat):
+    sy = math.sqrt(R_mat[0, 0] * R_mat[0, 0] + R_mat[1, 0] * R_mat[1, 0])
+
     singular = sy < 1e-6
+
     if not singular:
-        azimut = np.arctan2(R_mat[2, 1], R_mat[2, 2])
-        pitch = np.arctan2(-R_mat[2, 0], sy)
-        roll = np.arctan2(R_mat[1, 0], R_mat[0, 0])
+        x = math.atan2(R_mat[2, 1], R_mat[2, 2])
+        y = math.atan2(-R_mat[2, 0], sy)
+        z = math.atan2(R_mat[1, 0], R_mat[0, 0])
     else:
-        azimut = np.arctan2(-R_mat[1, 2], R_mat[1, 1])
-        pitch = np.arctan2(-R_mat[2, 0], sy)
-        roll = 0
-    return np.array([azimut, pitch, roll])
+        x = math.atan2(-R_mat[1, 2], R_mat[1, 1])
+        y = math.atan2(-R_mat[2, 0], sy)
+        z = 0
+
+    return np.array([x, y, z])
 
 
 def translation_to_vec(translation):
@@ -893,18 +1105,18 @@ def apply_full_consensus_match(first_frame, second_frame):
     left1_kpts, left1_dsc, right1_kpts, pair1_matches, pair1_rec_matches_idx = read_and_rec_match(second_frame)
 
     trans, frame0_features, frame1_features, frame0_inliers_percentage, supporters_idx = \
-                                find_features_in_consecutive_frames(left0_kpts, left0_dsc,
-                                                                    right0_kpts,
-                                                                    pair0_matches, pair0_rec_matches_idx,
-                                                                    left1_kpts, left1_dsc,
-                                                                    right1_kpts,
-                                                                    pair1_matches, pair1_rec_matches_idx)
+        find_features_in_consecutive_frames(left0_kpts, left0_dsc,
+                                            right0_kpts,
+                                            pair0_matches, pair0_rec_matches_idx,
+                                            left1_kpts, left1_dsc,
+                                            right1_kpts,
+                                            pair1_matches, pair1_rec_matches_idx)
 
-    return trans, frame0_features, frame1_features,  supporters_idx, frame0_inliers_percentage
+    return trans, frame0_features, frame1_features, supporters_idx, frame0_inliers_percentage
 
 
-def find_loop_candidate_by_consensus_match(mahalanobis_dist_cand_movie_ind, mahalanobis_dist_cand_pg_ind,
-                                           cur_frame_movie_ind, threshold):
+def find_loop_cand_by_consensus(mahalanobis_dist_cand_movie_ind, mahalanobis_dist_cand_pg_ind,
+                                cur_frame_movie_ind, threshold):
     passed_consensus_frame_track_tuples = []  # {pose graph prev frame index : tracks between prev frame and cur frame}
     cur_frame_left_kpts, cur_frame_left_dsc, cur_frame_right_kpts, \
     cur_frame_matches, cur_frame_rec_matches_idx = read_and_rec_match(cur_frame_movie_ind)
@@ -913,13 +1125,17 @@ def find_loop_candidate_by_consensus_match(mahalanobis_dist_cand_movie_ind, maha
         cand_frame_left_kpts, cand_frame_left_dsc, cand_frame_right_kpts, \
         cand_frame_matches, cand_frame_rec_matches_idx = read_and_rec_match(cand_at_movie_ind)
 
-        _, frame0_features, frame1_features, inliers_perc, supportes_idx = find_features_in_consecutive_frames(cand_frame_left_kpts, cand_frame_left_dsc,
-                                                                    cand_frame_right_kpts,
-                                                                    cand_frame_matches, cand_frame_rec_matches_idx,
-                                                                    cur_frame_left_kpts, cur_frame_left_dsc,
-                                                                    cur_frame_right_kpts,
-                                                                    cur_frame_matches, cur_frame_rec_matches_idx)
-        frame0_features, frame1_features = frame0_features[supportes_idx], frame1_features[supportes_idx]
+        _, frame0_features, frame1_features, inliers_perc, supporters_idx = find_features_in_consecutive_frames(
+            cand_frame_left_kpts, cand_frame_left_dsc,
+            cand_frame_right_kpts,
+            cand_frame_matches, cand_frame_rec_matches_idx,
+            cur_frame_left_kpts, cur_frame_left_dsc,
+            cur_frame_right_kpts,
+            cur_frame_matches, cur_frame_rec_matches_idx)
+
+        frame0_features, frame1_features = frame0_features[supporters_idx], frame1_features[supporters_idx]
+
+        print(mahalanobis_dist_cand_pg_ind[cand_ind], ": ", inliers_perc)
 
         # Todo: check wether to return the inliers precentage or num
         if inliers_perc > threshold:
@@ -931,7 +1147,6 @@ def find_loop_candidate_by_consensus_match(mahalanobis_dist_cand_movie_ind, maha
 
 
 def create_little_tracks(first_frame_features_obj, second_frame_features_obj, first_frame_id, second_frame_id):
-    # Todo: consider change this to add those track sto the data base
     tracks = []
 
     for i in range(len(first_frame_features_obj)):
@@ -952,5 +1167,53 @@ def create_little_tracks(first_frame_features_obj, second_frame_features_obj, fi
     return tracks
 
 
+def cameras_initial_est_and_ground_truth_locations(pose_graph):
+    key_frames = pose_graph.get_key_frames()
+    gtsam_optimized_cameras_poses = pose_graph.get_optimized_cameras_poses()
+    gtsam_initial_est_cameras_poses = pose_graph.get_initial_est_cameras_poses()
+    ground_truth = np.array(utils.utills.get_ground_truth_transformations())[key_frames]
+
+    initial_trans_diffs = [between(convert_gtsam_ex_cam_to_world_to_cam(init_t), gt_t) for init_t, gt_t in zip(gtsam_initial_est_cameras_poses, ground_truth)]
+    opt_trans_diffs = [between(convert_gtsam_ex_cam_to_world_to_cam(opt_t), gt_t) for opt_t, gt_t in zip(gtsam_optimized_cameras_poses, ground_truth)]
+
+    initial_trans_loc_diff = utils.utills.left_cameras_trajectory(initial_trans_diffs)
+    opt_trans_loc_diff = utils.utills.left_cameras_trajectory(opt_trans_diffs)
+
+    return initial_trans_loc_diff, opt_trans_loc_diff
 
 
+def cameras_initial_est_and_ground_truth_angles(pose_graph):
+    key_frames = pose_graph.get_key_frames()
+    gtsam_optimized_cameras_poses = pose_graph.get_optimized_cameras_poses()
+    gtsam_initial_est_cameras_poses = pose_graph.get_initial_est_cameras_poses()
+    ground_truth = np.array(utils.utills.get_ground_truth_transformations())[key_frames]
+
+    initial_trans_diffs = [between(convert_gtsam_ex_cam_to_world_to_cam(init_t), gt_t) for init_t, gt_t in zip(gtsam_initial_est_cameras_poses, ground_truth)]
+    opt_trans_diffs = [between(convert_gtsam_ex_cam_to_world_to_cam(opt_t), gt_t) for opt_t, gt_t in zip(gtsam_optimized_cameras_poses, ground_truth)]
+
+    initial_trans_angles_diff = utils.utills.left_cameras_angles(initial_trans_diffs)
+    opt_trans_angles_diff = utils.utills.left_cameras_angles(opt_trans_diffs)
+
+    return initial_trans_angles_diff, opt_trans_angles_diff
+
+
+def cameras_rel_pnp_est_and_ground_truth_locations(db):
+    initial_est_cameras_poses = convert_trans_from_rel_to_global(db.get_relative_cam_trans())
+    ground_truth = np.array(utils.utills.get_ground_truth_transformations())
+
+    trans_diffs = [between(init_t, gt_t) for init_t, gt_t in zip(initial_est_cameras_poses, ground_truth)]
+
+    trans_loc = utils.utills.left_cameras_trajectory(trans_diffs)
+
+    return trans_loc
+
+
+def cameras_rel_pnp_est_and_ground_truth_angles(db):
+    initial_est_cameras_poses = convert_trans_from_rel_to_global(db.get_relative_cam_trans())
+    ground_truth = np.array(utils.utills.get_ground_truth_transformations())
+
+    trans_diffs = [init_t[:, :3].T @ gt_t[:, :3] for init_t, gt_t in zip(initial_est_cameras_poses, ground_truth)]
+
+    trans_angles = utils.utills.left_cameras_angles(trans_diffs)
+
+    return trans_angles

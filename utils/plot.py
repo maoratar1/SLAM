@@ -1,8 +1,70 @@
 import cv2
 import matplotlib.pyplot as plt
 
+import BundleAdjustmentDirectory.BundleAdjustment
+from DataDirectory import Data
+import utils.utills as utills
+
 INLIER_COLOR = "orange"
 OUTLIER_COLOR = "cyan"
+
+def plot_frame1(frame_num):
+    rows, cols = 1, 2
+
+    fig, ax_arr = plt.subplots(rows, cols)
+    fig.set_figwidth(10)
+    fig.set_figheight(7)
+    fig.tight_layout()
+
+    fig.suptitle(f"Frame {frame_num}")
+    # plt.rcParams["font.size"] = "10"
+    plt.subplots_adjust(wspace=0.0, hspace=0.1)
+
+    ax_arr[0].set_title("Left")
+    ax_arr[1].set_title("Right")
+
+    left_img, right_img = Data.KITTI.read_images(frame_num)
+
+    ax_arr[0].axes.xaxis.set_visible(False)
+    ax_arr[0].set_yticklabels([])
+    ax_arr[0].imshow(left_img, cmap='gray')
+
+    ax_arr[1].axes.xaxis.set_visible(False)
+    ax_arr[1].set_yticklabels([])
+    ax_arr[1].imshow(right_img, cmap='gray')
+
+    fig.tight_layout()
+    fig.savefig(f'Results/frame{frame_num}.png')
+    plt.close(fig)
+
+
+def plot_frame(frame_num):
+    rows, columns = 1, 2
+    fig = plt.figure(figsize=(14, 7))
+    fig.suptitle(f"Frame {frame_num}")
+
+    fig.add_subplot(rows, columns, 1)
+
+    plt.subplots_adjust(wspace=0.1, hspace=0.1)
+    plt.tight_layout()
+
+    left_img, right_img = Data.KITTI.read_images(frame_num)
+
+    plt.imshow(left_img, cmap='gray')
+    plt.axis('off')
+    plt.title("Left camera")
+
+    fig.add_subplot(rows, columns, 2)
+
+    plt.imshow(right_img, cmap='gray')
+    plt.axis('off')
+    plt.title("Right camera")
+
+    plt.subplots_adjust(wspace=0.0, hspace=0.1)
+
+    fig.savefig(f'Results/frame{frame_num}.png')
+    plt.close(fig)
+
 
 def plot_arr_values_as_function_of_its_indexes(values, title, file_path):
     """
@@ -151,20 +213,22 @@ def compare_left_cam_2d_trajectory_to_ground_truth_params(left_cameras_pos, left
     """
     Compare the left cameras relative 2d positions to the ground truth
     """
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10, 7))
 
     ax = fig.add_subplot()
     ax.set_title(f"Left cameras 2d trajectory compared to ground truth of"
                  f" {len(left_cameras_pos)} frames_ind (ground truth - cyan)\n"
                  f"{alg_name} | {match_method} | Time: {time}")
-    ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
-    ax.scatter(left_cameras_pos_gt[:, 0], left_cameras_pos_gt[:, 2], s=1, c='cyan')
+    ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red', label="Initial estimation")
+    ax.scatter(left_cameras_pos_gt[:, 0], left_cameras_pos_gt[:, 2], s=1, c='cyan'.title(), label="Cameras ground truth")
+    plt.legend(loc='upper left')
 
     fig.savefig(f"Results/Compare Left cameras 2d trajectory {alg_name} {match_method}.png")
     plt.close(fig)
 
 
-def plot_supporters(first_frame_ind, second_frame_ind, left0, left1, left0_matches_coor=None, left1_matches_coor=None,
+def plot_supporters(first_frame_ind, second_frame_ind, prev_frame_pg_ind, cur_frame_pg_ind,
+                    left0, left1, left0_matches_coor=None, left1_matches_coor=None,
                     supporters_idx=None, inliers_perc=None):
     """
     Plot KITTI supporters on left0 and left1
@@ -177,12 +241,14 @@ def plot_supporters(first_frame_ind, second_frame_ind, left0, left1, left0_match
         inliers_perc = format(inliers_perc, ".2f")
         perc_title = f"supporters({inliers_perc}% inliers, {INLIER_COLOR})"
 
-    fig.suptitle(f'frame {first_frame_ind} and frame {second_frame_ind} {perc_title}')
+    fig.suptitle(f'frame {prev_frame_pg_ind}(movie ind: {first_frame_ind}) and frame {cur_frame_pg_ind} (moive ind:'
+                 f'{second_frame_ind})' 
+                 f' {perc_title}')
 
     # Left1 camera
     fig.add_subplot(rows, cols, 2)
     plt.imshow(left1, cmap='gray')
-    plt.title(f"frame {second_frame_ind}")
+    plt.title(f"frame {cur_frame_pg_ind}")
 
     if left1_matches_coor is not None:
         plt.scatter(left1_matches_coor[:, 0], left1_matches_coor[:, 1], s=3, color=OUTLIER_COLOR)
@@ -191,14 +257,14 @@ def plot_supporters(first_frame_ind, second_frame_ind, left0, left1, left0_match
     # Left0 camera
     fig.add_subplot(rows, cols, 1)
     plt.imshow(left0, cmap='gray')
-    plt.title(f"frame {first_frame_ind}")
+    plt.title(f"frame {prev_frame_pg_ind}")
 
     if left0_matches_coor is not None:
         plt.scatter(left0_matches_coor[:, 0], left0_matches_coor[:, 1], s=3, color=OUTLIER_COLOR)
         plt.scatter(left0_matches_coor[:, 0][supporters_idx], left0_matches_coor[:, 1][supporters_idx], s=3,
                     color=INLIER_COLOR)
 
-    fig.savefig(f"Results/Left {first_frame_ind} and {second_frame_ind} frames_ind supporters.png")
+    fig.savefig(f"Results/Left {prev_frame_pg_ind} and {cur_frame_pg_ind} frames_ind supporters.png")
     plt.close(fig)
 
 
@@ -218,7 +284,7 @@ def plot_supporters_with_outliers(first_frame_ind, second_frame_ind, left0, left
 
     fig.suptitle(f'frame {first_frame_ind} and frame {second_frame_ind} {perc_title}')
 
-    # Left1 camera
+    # Second camera
     fig.add_subplot(rows, cols, 2)
     plt.imshow(left1, cmap='gray')
     plt.title(f"frame {second_frame_ind}")
@@ -227,7 +293,7 @@ def plot_supporters_with_outliers(first_frame_ind, second_frame_ind, left0, left
         plt.scatter(left1_matches_coor[:, 0], left1_matches_coor[:, 1], s=1, color=OUTLIER_COLOR)
         plt.scatter(left1_matches_coor[:, 0], left1_matches_coor[:, 1], s=3, color=INLIER_COLOR)
 
-    # Left0 camera
+    # First camera
     fig.add_subplot(rows, cols, 1)
     plt.imshow(left0, cmap='gray')
     plt.title(f"frame {first_frame_ind}")
@@ -238,6 +304,175 @@ def plot_supporters_with_outliers(first_frame_ind, second_frame_ind, left0, left
     fig.savefig("Results/Left0 Left1 supporters.png")
     plt.close(fig)
 
+
+def plot_supporters_compare_to_ransac(left0, left1,
+                                      left0_matches_coor, left1_matches_coor,
+                                      supporters_idx, ransac_supporters_idx):
+    """
+    Plots the supporters in left0 and left1 with and without ransac
+    """
+    rows, cols = 2, 2
+    fig, ax_arr = plt.subplots(rows, cols)
+    fig.set_figwidth(14)
+    fig.set_figheight(7)
+    plt.tight_layout()
+    fig.suptitle(f'Left 0 and left1 supporters with/out ransac')
+
+    # plt.rcParams["font.size"] = "10"
+    plt.subplots_adjust(wspace=0.1, hspace=-0.55)
+    ax_arr[0, 0].set_title(
+        f"Without ransac supporters({len(supporters_idx)} / {len(left1_matches_coor)}, {INLIER_COLOR})")
+    ax_arr[0, 1].set_title(
+        f"With ransac supporters({len(ransac_supporters_idx)} / {len(left1_matches_coor)}, {INLIER_COLOR})")
+
+    ax_arr[0, 0].axes.xaxis.set_visible(False)
+    ax_arr[0, 0].axes.yaxis.set_label_text(f"Left 1")
+    ax_arr[0, 0].set_yticklabels([])
+    ax_arr[0, 0].imshow(left1, cmap='gray')
+    ax_arr[0, 0].scatter(left1_matches_coor[:, 0], left1_matches_coor[:, 1], s=1, color=OUTLIER_COLOR)
+    ax_arr[0, 0].scatter(left1_matches_coor[supporters_idx][:, 0],
+                left1_matches_coor[supporters_idx][:, 1], s=1, color=INLIER_COLOR)
+
+    ax_arr[1, 0].axes.xaxis.set_visible(False)
+    ax_arr[1, 0].axes.yaxis.set_label_text(f"Left 0")
+    ax_arr[1, 0].set_yticklabels([])
+    ax_arr[1, 0].imshow(left0, cmap='gray')
+    ax_arr[1, 0].scatter(left0_matches_coor[:, 0], left0_matches_coor[:, 1], s=1, color=OUTLIER_COLOR)
+    ax_arr[1, 0].scatter(left0_matches_coor[supporters_idx][:, 0],
+                         left0_matches_coor[supporters_idx][:, 1], s=1, color=INLIER_COLOR)
+
+    ax_arr[0, 1].axes.xaxis.set_visible(False)
+    ax_arr[0, 1].axes.yaxis.set_label_text(f"Left 1")
+    ax_arr[0, 1].set_yticklabels([])
+    ax_arr[0, 1].imshow(left1, cmap='gray')
+    ax_arr[0, 1].scatter(left1_matches_coor[:, 0], left1_matches_coor[:, 1], s=1, color=OUTLIER_COLOR)
+    ax_arr[0, 1].scatter(left1_matches_coor[ransac_supporters_idx][:, 0],
+                         left1_matches_coor[ransac_supporters_idx][:, 1], s=1, color=INLIER_COLOR)
+
+    ax_arr[1, 1].axes.xaxis.set_visible(False)
+    ax_arr[1, 1].axes.yaxis.set_label_text(f"Left 0")
+    ax_arr[1, 1].set_yticklabels([])
+    ax_arr[1, 1].imshow(left0, cmap='gray')
+    ax_arr[1, 1].scatter(left0_matches_coor[:, 0], left0_matches_coor[:, 1], s=1, color=OUTLIER_COLOR)
+    ax_arr[1, 1].scatter(left0_matches_coor[ransac_supporters_idx][:, 0],
+                         left0_matches_coor[ransac_supporters_idx][:, 1], s=1, color=INLIER_COLOR)
+
+
+    fig.savefig("Results/Left0 Left1 supporters ransac compare.png")
+    plt.close(fig)
+
+
+def plot_compare_left_cam_2d_trajectory_to_ground_truth_params(left_cameras_pos, left_cameras_pos_gt, alg_name, match_method, time):
+    """
+    Compare the left cameras relative 2d positions to the ground truth
+    """
+    fig = plt.figure()
+
+    ax = fig.add_subplot()
+    ax.set_title(f"Left cameras 2d trajectory compared to ground truth of"
+                 f" {len(left_cameras_pos)} frames (ground truth - cyan)\n"
+                 f"{alg_name} | {match_method} | Time: {time}")
+    ax.scatter(left_cameras_pos[:, 0], left_cameras_pos[:, 2], s=1, c='red')
+    ax.scatter(left_cameras_pos_gt[:, 0], left_cameras_pos_gt[:, 2], s=1, c='cyan')
+
+    fig.savefig(f"Results/Compare Left cameras 2d trajectory {alg_name} {match_method}.png")
+    plt.close(fig)
+
+
+# Ex4
+def plot_track(track, first_frame=0, last_frame=-1):
+    """
+    Plots a track all over it's frames_in_window with a line connecting the track
+    :param track:
+    :return:
+    """
+
+    track_id = track.get_id()
+    if last_frame > track.get_last_frame_ind():
+        last_frame = -1
+    if first_frame < track.get_first_frame_ind():
+        first_frame = 0
+
+    frames_ids = track.get_frames_ids()[first_frame: last_frame]
+    frames_coor = track.get_frames_features_dict()
+
+    # rows, cols = len(frames_coor) // 3, 3
+    rows, cols = len(frames_ids), 2
+    crop_size = 100
+
+    fig, ax_arr = plt.subplots(rows, cols)
+    fig.set_figwidth(4)
+    fig.set_figheight(12)
+
+    fig.suptitle(f"Track(id:{track_id}) with len {len(frames_ids)}\n Image cropped to {crop_size}X{crop_size}")
+    plt.rcParams["font.size"] = "10"
+    plt.subplots_adjust(wspace=-0.55, hspace=0.1)
+
+    ax_arr[0, 0].set_title("Left")
+    ax_arr[0, 1].set_title("Right")
+
+    prev_l_coor, prev_left, prev_l_ax = None, None, None
+    prev_r_coor, prev_right, prev_r_ax = None, None, None
+
+    i = 0
+
+    for frame_id in frames_ids:
+        feature = frames_coor[frame_id]
+        l_coor = feature.get_left_coor()
+        r_coor = feature.get_right_coor()
+
+        left_img, right_img = Data.KITTI.read_images(frame_id)
+        cropped_left_img, l_coor = crop_image(l_coor, left_img, crop_size)
+        cropped_right_img, r_coor = crop_image(r_coor, right_img, crop_size)
+
+        ax_arr[i, 0].axes.xaxis.set_visible(False)
+        ax_arr[i, 0].axes.yaxis.set_label_text(f"frame {frame_id}")
+        ax_arr[i, 0].set_yticklabels([])
+        ax_arr[i, 0].imshow(cropped_left_img, cmap='gray')
+        ax_arr[i, 0].scatter(l_coor[0], l_coor[1], c='red', s=10)
+
+        ax_arr[i, 1].axes.xaxis.set_visible(False)
+        ax_arr[i, 1].set_yticklabels([])
+        ax_arr[i, 1].imshow(cropped_right_img, cmap='gray')
+        ax_arr[i, 1].scatter(r_coor[0], r_coor[1], c='red', s=10)
+
+        if i == 0:
+            prev_l_coor, prev_left, prev_l_ax = l_coor, cropped_left_img, ax_arr[i, 0]
+            prev_r_coor, prev_right, prev_r_ax = r_coor, cropped_right_img, ax_arr[i, 1]
+
+        left0_left1_line = ConnectionPatch(xyA=(prev_l_coor[0], prev_l_coor[1]),
+                                           xyB=(l_coor[0], l_coor[1]),
+                                           coordsA="data", coordsB="data",
+                                           axesA=prev_l_ax, axesB=ax_arr[i, 0], color="cyan")
+
+        right0_right1_line = ConnectionPatch(xyA=(prev_r_coor[0], prev_r_coor[1]),
+                                             xyB=(r_coor[0], r_coor[1]),
+                                             coordsA="data", coordsB="data",
+                                             axesA=prev_r_ax, axesB=ax_arr[i, 1], color="cyan")
+
+        ax_arr[i, 0].add_artist(left0_left1_line)
+        ax_arr[i, 1].add_artist(right0_right1_line)
+
+        prev_l_coor, prev_left, prev_l_ax = l_coor, cropped_left_img, ax_arr[i, 0]
+        prev_r_coor, prev_right, prev_r_ax = r_coor, cropped_right_img, ax_arr[i, 1]
+
+        i += 1
+
+    fig.savefig(f"Results/track {track_id}.png")
+    plt.close(fig)
+
+
+def crop_image(coor, img, crop_size):
+    """
+    Crops image "img" to size of "crop_size" X "crop_size" around the d2_points "coor"
+    :return: Cropped image
+    """
+    r_x = int(min(utills.IMAGE_WIDTH, coor[0] + crop_size))
+    l_x = int(max(0, coor[0] - crop_size))
+    u_y = int(max(0, coor[1] - crop_size))
+    d_y = int(min(utills.IMAGE_HEIGHT, coor[1] + crop_size))
+
+    return img[u_y: d_y, l_x: r_x], [crop_size, crop_size]
 
 # Ex5
 def plot_re_projection_error_graph(total_proj_dist, frame_idx_triangulate, title):
@@ -281,17 +516,16 @@ def plot_left_cam_2d_trajectory_and_3d_points_compared_to_ground_truth(cameras=N
     """
     Compare the left cameras relative 2d positions to the ground truth
     """
-    loops_title = ""
-    # if loops is not None:
-    #     loops_title = f"Loops: {loops}"
-
     fig = plt.figure()
     ax = fig.add_subplot()
     first_legend = []
 
-    ax.set_title(f"{title} Left cameras and landmarks 2d trajectory of {len(cameras_gt)} bundles.\n"
-                 f"Dist = Mahalanobis distance"
-                 f"{loops_title}", )
+    landmarks_title = "and landmarks " if landmarks is not None else ""
+    loops_title = ""
+    dist_title = "Dist = squared mahalanobis distance " if mahalanobis_dist is not None else ""
+
+    ax.set_title(f"{title} Left cameras {landmarks_title}2d trajectory of {len(cameras_gt)} bundles.\n{dist_title}"
+                 f"{loops_title}")
 
     if landmarks is not None:
         a = ax.scatter(landmarks[:, 0], landmarks[:, 2], s=1, c='orange', label="Landmarks")
@@ -301,7 +535,7 @@ def plot_left_cam_2d_trajectory_and_3d_points_compared_to_ground_truth(cameras=N
         first_legend.append(ax.scatter(initial_estimate_poses[:, 0], initial_estimate_poses[:, 2], s=1, c='pink', label="Initial estimate"))
 
     if cameras is not None:
-        first_legend.append(ax.scatter(cameras[:, 0], cameras[:, 2], s=1, c='red', label="Cameras"))
+        first_legend.append(ax.scatter(cameras[:, 0], cameras[:, 2], s=1, c='red', label="Optimized cameras"))
 
     if cameras_gt is not None:
         first_legend.append(ax.scatter(cameras_gt[:, 0], cameras_gt[:, 2], s=1, c='cyan', label="Cameras ground truth"))
@@ -321,9 +555,12 @@ def plot_left_cam_2d_trajectory_and_3d_points_compared_to_ground_truth(cameras=N
                     ax.text(cameras[:, 0][prev_cam], cameras[:, 2][prev_cam], prev_cam, size=7, fontweight="bold")
             ax.scatter(cameras[:, 0][prev_cams], cameras[:, 2][prev_cams], s=1, c='black')
 
-    # ax.set_xlim(-288, 600)
-    # ax.set_ylim(-100, 420)
-    plt.subplots_adjust(left=0.25, bottom=0.08, right=0.95, top=0.9)
+    if landmarks is not None:
+        ax.set_xlim(-250, 350)
+        ax.set_ylim(-100, 430)
+
+    if loops is not None:
+        plt.subplots_adjust(left=0.25, bottom=0.08, right=0.95, top=0.9)
 
     landmarks_txt = "and landmarks" if landmarks is not None else ""
     mahalanobis_dist_and_inliers = f"Dist: {mahalanobis_dist}; Inliers: {inliers_perc}%\n"
@@ -340,12 +577,75 @@ def plot_left_cam_2d_trajectory_and_3d_points_compared_to_ground_truth(cameras=N
 
     first_legend = plt.legend(handles=first_legend, loc='upper left', prop={'size': 7})
     plt.gca().add_artist(first_legend)
-    # loops_plot,  = plt.plot([], [], ' ', label=loops_txt)
-    # plt.legend(handles=[loops_plot], loc='lower left', )
 
     fig.savefig(f"Results/{title} Left {len(cameras_gt)} cameras {landmarks_txt} 2d trajectory "
-                f"m dist {mahalanobis_dist_and_inliers} loops {len_loops}.png")
+                f"m dist {mahalanobis_dist_and_inliers} loops {len_loops} "
+                f"{BundleAdjustmentDirectory.BundleAdjustment.PERCENTAGE}.png")
     plt.close(fig)
 
 
+def trajectory_state_over_the_process(initial_est, bundle_opt, loop_opt, ground_truth):
+    """
+    Compare the left cameras relative 2d positions to the ground truth
+    """
+    fig = plt.figure()
 
+    ax = fig.add_subplot()
+    ax.set_title(f"Left cameras (key frames) 2d trajectory over the process")
+    ax.scatter(initial_est[:, 0], initial_est[:, 2], s=1, c='pink', label="1. Initial estimation")
+    ax.scatter(bundle_opt[:, 0], bundle_opt[:, 2], s=1, c='orangered', label="2. Bundle Adjusment")
+    ax.scatter(loop_opt[:, 0], loop_opt[:, 2], s=1, c='darkviolet', label="3. Loop Closure")
+    ax.scatter(ground_truth[:, 0], ground_truth[:, 2], s=1, c='cyan', label="4. Ground truth")
+    plt.legend(loc='upper left', prop={'size': 7})
+
+    fig.savefig("Results/Left cameras 2d trajectory of the all process.png")
+    plt.close(fig)
+
+
+def plot_2_images_pg_ind(prev_cam_ind, cur_cam_ind, match=True):
+    """
+    This function plot 2 images with indexes from the pose graph
+    """
+    left0_matches_coor = left1_matches_coor = supporters_idx = frame0_inliers_percentage = None
+
+    prev_frame_ind_whole_movie = Data.PG.get_key_frames()[prev_cam_ind]
+    cur_frame_ind_whole_movie = Data.PG.get_key_frames()[cur_cam_ind]
+
+    # Take the left images - we use the function read, so it won't apply blurring
+    prev_img, cur_img = Data.KITTI.read_images(prev_frame_ind_whole_movie)[0], \
+                        Data.KITTI.read_images(cur_frame_ind_whole_movie)[0]
+
+    if match:
+        _, frame0_features, frame1_features, supporters_idx, frame0_inliers_percentage = \
+            utills.apply_full_consensus_match(prev_frame_ind_whole_movie, cur_frame_ind_whole_movie)
+
+        left0_matches_coor = utills.get_features_left_coor(frame0_features)
+        left1_matches_coor = utills.get_features_left_coor(frame1_features)
+
+    plot_supporters(prev_frame_ind_whole_movie, cur_frame_ind_whole_movie,
+                               prev_cam_ind, cur_cam_ind,
+                               prev_img, cur_img,
+                               left0_matches_coor, left1_matches_coor, supporters_idx, frame0_inliers_percentage)
+
+
+def plot_2_images_movie_ind(first_frame_ind, second_frame_ind, match=True):
+    """
+    This function plot 2 images with indexes from the pose graph
+    """
+    left0_matches_coor = left1_matches_coor = supporters_idx = frame0_inliers_percentage = None
+
+    # Take the left images - we use the function read, so it won't apply blurring
+    prev_img, cur_img = Data.KITTI.read_images(first_frame_ind)[0], \
+                        Data.KITTI.read_images(second_frame_ind)[0]
+
+    if match:
+        _, frame0_features, frame1_features, supporters_idx, frame0_inliers_percentage = \
+            utills.apply_full_consensus_match(first_frame_ind, second_frame_ind)
+
+        left0_matches_coor = utills.get_features_left_coor(frame0_features)
+        left1_matches_coor = utills.get_features_left_coor(frame1_features)
+
+    plot_supporters(first_frame_ind, second_frame_ind,
+                         first_frame_ind, second_frame_ind,
+                         prev_img, cur_img,
+                         left0_matches_coor, left1_matches_coor, supporters_idx, frame0_inliers_percentage)

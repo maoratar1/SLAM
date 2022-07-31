@@ -16,15 +16,16 @@ class MinHeap:
         self.__size = 0
         self.nodes_positions = []
 
-    def add_node(self, v, dist):
+    def add_node(self, vertex, dist):
         """
         Adds node to the heap
-        :param v:
+        :param vertex:
         :param dist:
         :return:
         """
-        node = [v, dist]
-        return node
+        self.nodes_lst.append([vertex, dist])
+        self.nodes_positions.append(vertex)
+        self.__size += 1
 
     def swap(self, first_node, second_node):
         """
@@ -36,23 +37,23 @@ class MinHeap:
 
     def heapify_down(self, node_to_heapify):
         """
-        Apply heapify at a given idx. This function also updates position of nodes for decreaseKey()
-        :param node_to_heapify:
-        :return:
+        Apply heapify at a given idx. This function also updates position of nodes for update_vertex_val function
         """
         smallest = node_to_heapify
         left = 2 * node_to_heapify + 1
         right = 2 * node_to_heapify + 2
 
-        # Check if the left child exists and its value is smaller than the node's values
+        # Finds the smallest node between node_to_heapify, its left child and its right child
+
+        # Check if the left child exists and its value is smaller than node's values
         if left < self.__size and self.nodes_lst[left][1] < self.nodes_lst[smallest][1]:
             smallest = left
 
-        # Check if the right child exists and its value is smaller than the node's values
+        # Check if the right child exists and its value is smaller than node's values
         if right < self.__size and self.nodes_lst[right][1] < self.nodes_lst[smallest][1]:
             smallest = right
 
-        # Check if the smallest had changed
+        # Check if 'smallest' had changed
         if smallest != node_to_heapify:
             # Swap positions
             self.nodes_positions[self.nodes_lst[smallest][0]] = node_to_heapify
@@ -67,7 +68,6 @@ class MinHeap:
         """
         Extract node with the minimal value at the heap
         """
-
         # Return None if heap is empty
         if self.is_empty():
             return
@@ -84,38 +84,45 @@ class MinHeap:
         self.nodes_positions[root[0]] = self.__size - 1
 
         # Reduce heap size and heapify root
-        self.size -= 1
+        self.__size -= 1
         self.heapify_down(0)
 
         return root
 
     def is_empty(self):
+        """
+        Check if the heap empty
+        """
         return self.__size == 0
 
-    def decreaseKey(self, v, dist):
+    def update_vertex_val(self, vertex, val):
+        """
+        Update vertex's value and place it at the right place in the Min heap
+        """
+        vertex_heap_ind = self.nodes_positions[vertex]
 
-        # Get the index of v in  heap array
+        # Update node's value
+        self.nodes_lst[vertex_heap_ind][1] = val
 
-        i = self.nodes_positions[v]
+        vertex_parent_ind = (vertex_heap_ind - 1) // 2
 
-        # Get the node and update its dist value
-        self.nodes_lst[i][1] = dist
-
-        # Travel up while the complete tree is
-        # not hepified. This is a O(Logn) loop
-        while (i > 0 and self.nodes_lst[i][1] < self.nodes_lst[(i - 1) // 2][1]):
+        # Travel up while the complete tree is not heapified.
+        while vertex_heap_ind > 0 and self.nodes_lst[vertex_heap_ind][1] < self.nodes_lst[vertex_parent_ind][1]:
             # Swap this node with its parents
-            self.nodes_positions[self.nodes_lst[i][0]] = (i - 1) // 2
-            self.nodes_positions[self.nodes_lst[(i - 1) // 2][0]] = i
-            self.swap(i, (i - 1) // 2)
+            self.nodes_positions[self.nodes_lst[vertex_heap_ind][0]] = vertex_parent_ind
+            self.nodes_positions[self.nodes_lst[vertex_parent_ind][0]] = vertex_heap_ind
+            self.swap(vertex_heap_ind, vertex_parent_ind)
 
-            # move to parents index
-            i = (i - 1) // 2
+            # Move to parent's index
+            vertex_heap_ind = vertex_parent_ind
+            # Update parent to parent
+            vertex_parent_ind = (vertex_heap_ind - 1) // 2
 
-    # A utility function to check if a given
-    # vertex 'v' is in min heap or not
-    def isInMinHeap(self, v):
+    def in_heap(self, vertex):
+        """
+        Check if a given vertex is in min heap or not
+        """
+        return self.nodes_positions[vertex] < self.__size
 
-        if self.nodes_positions[v] < self.size:
-            return True
-        return False
+    def set_heap_size(self, size):
+        self.__size = size
