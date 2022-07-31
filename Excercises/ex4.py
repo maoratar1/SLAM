@@ -1,6 +1,10 @@
 import time
 
-import DataBaseDirectory as DB
+import tqdm
+
+import DataDirectory.Data
+import utils.utills
+from DataBaseDirectory import DataBase
 import random
 
 import numpy as np
@@ -31,12 +35,9 @@ def find_features_in_consecutive_frames_whole_movie(first_left_ex_cam_mat=utills
 
     # Find matches in pair0 with rectified test
     left0_kpts, left0_dsc, right0_kpts, pair0_matches, pair0_rec_matches_idx = \
-                                                                          utills.read_and_rec_match(0, kernel_size=10)
-    print("Pair 0")
+                                                                          utills.read_and_rec_match(0)
     inliers_percentage = []
-    for i in range(1, utills.MOVIE_LEN):
-        if i % 100 == 0:
-            print("Pair ", i)
+    for i in tqdm.tqdm(range(1, utills.MOVIE_LEN)):
         left1_kpts, left1_dsc, right1_kpts, pair1_matches, pair1_rec_matches_idx = \
                                                                      utills.read_and_rec_match(i)
 
@@ -68,7 +69,7 @@ def find_features_in_consecutive_frames(left0_kpts, left0_dsc, right0_kpts,
    """
 
     # Find matches between left0 and left1
-    left0_left1_matches = utills.matching(left0_dsc, left1_dsc)
+    left0_left1_matches = utills.match(left0_dsc, left1_dsc)
 
     # Find key pts that match in all 4 KITTI
     rec0_dic = utills.create_rec_dic(pair0_matches, pair0_rec_matches_idx)  # dict of {left kpt idx: pair rec id}
@@ -97,15 +98,15 @@ def find_features_in_consecutive_frames(left0_kpts, left0_dsc, right0_kpts,
 
     # Finds Feature's indexes of frame0_features and frame1_features that passed the consensus match
     # with using Ransac method
-    trans, max_supp_group_idx = utills.online_est_pnp_ransac(utills.PNP_NUM_PTS, pair0_p3d_pts,
+    trans, max_supp_group_indicators = utills.online_est_pnp_ransac(utills.PNP_NUM_PTS, pair0_p3d_pts,
                                                              utills.M1, left0_matches_coor,
                                                              utills.M2, right0_matches_coor,
                                                              left1_matches_coor,
                                                              utills.M2, right1_matches_coor,
                                                              utills.K, acc=utills.SUPP_ERR)
 
-    frame0_inliers_percentage = 100 * len(max_supp_group_idx) / len(frame0_features)
-    return trans, frame0_features[max_supp_group_idx], frame1_features[max_supp_group_idx], frame0_inliers_percentage
+    frame0_inliers_percentage = 100 * sum(max_supp_group_indicators) / len(max_supp_group_indicators)
+    return trans, frame0_features[max_supp_group_indicators], frame1_features[max_supp_group_indicators], frame0_inliers_percentage
 
 
 # === Missions === #
@@ -331,9 +332,9 @@ def plot_connectivity_graph(vals_per_frame, frames_num):
     # plotting the d2_points
     plt.plot(x, vals_per_frame)
 
-    plt.xlabel('frames_in_window')
+    plt.xlabel('Frames')
     plt.ylabel('Outgoing tracks')
-    plt.title(f'Connectivity for {frames_num} frames_in_window')
+    plt.title(f'Connectivity for {frames_num} frames')
 
     plt.savefig("Results/Connectivity.png")
 
@@ -404,7 +405,7 @@ def mission7(db, frame_idx_triangulate, track_len=10):
     :param frame_idx_triangulate: frame's index to triangulate from
     """
     track = get_rand_track(track_len, db.get_tracks())
-    track_frames_ids = track.get_frames_idxes()
+    track_frames_ids = track.get_frames_ids()
 
     ground_truth_trans = utills.get_ground_truth_transformations()[track_frames_ids[0]: track_frames_ids[-1] + 1]
 
@@ -512,17 +513,15 @@ def plot_frame1_ending_tracks_features_and_frame2_features(left1, left2, frame1_
     plt.close(fig)
 
 
-def run_missions(missions, load, path):
+def run_missions(missions, load, path, save):
     if load:
-        db = DB.DataBase.load(path)
+        db = DataBase.load(path)
     else:
-        start = time.time()
-        prev_and_next_frame_features, inliers_percentage, relative_to_first_cam_trans = find_features_in_consecutive_frames_whole_movie()
-        end = time.time()
-        print("Time: ", (end - start) / 60)
+        consecutive_frame_features, inliers_percentage, global_trans, relative_trans = utills.find_features_in_consecutive_frames_whole_movie()
 
-        db = DB.DataBase(prev_and_next_frame_features, inliers_percentage, relative_to_first_cam_trans)
-        DB.save(path, db)
+        db = DataBase.DataBase(consecutive_frame_features, inliers_percentage, global_trans, relative_trans)
+        if save:
+            DataBase.save(path, db)
 
     for mission in missions:
         if mission == 2:
@@ -539,6 +538,33 @@ def run_missions(missions, load, path):
             mission7(db, -1, 10)
             mission7(db, 0, 10)
 
+
+def check_traj_and_db(missions, alg_name, match_method_name, load, path, save):
+    if load:
+        db = DataBase.load(path)
+    else:
+        consecutive_frame_features, inliers_percentage, global_trans, relative_trans = utills.find_features_in_consecutive_frames_whole_movie()
+
+        utils.utills.plot_traj(relative_trans, alg_name, match_method_name)
+
+        db = DataBase.DataBase(consecutive_frame_features, inliers_percentage, global_trans, relative_trans)
+        if save:
+            DataBase.save(path, db)
+
+    for mission in missions:
+        if mission == 2:
+            mission2(db)
+        if mission == 3:
+            mission3(db, 10)
+        if mission == 4:
+            mission4(db)
+        if mission == 5:
+            mission5(db)
+        if mission == 6:
+            mission6(db)
+        if mission == 7:
+            mission7(db, -1, 10)
+            mission7(db, 0, 10)
 
 def get_coor_in_range(d2_points, x_val, y_val):
     """

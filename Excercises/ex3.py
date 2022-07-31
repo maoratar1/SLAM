@@ -1,4 +1,6 @@
 import time
+import utils
+
 import matplotlib.pyplot as plt
 import tqdm
 
@@ -313,7 +315,7 @@ def compute_trans_between_left0_left1(left0, right0, left1, right1):
     pair1_rec_matches_idx, _ = utills.rectified_stereo_pattern_rej(left1_kpts, right1_kpts, pair1_matches)
 
     # Find matches between left0 and left1
-    left0_left1_matches = utills.matching(left0_dsc, left1_dsc)
+    left0_left1_matches = utills.match(left0_dsc, left1_dsc)
 
     # Find key pts that match in all 4 KITTI
     rec0_dic = create_rec_dic(pair0_matches, pair0_rec_matches_idx)  # dict of {left kpt idx: pair rec frame_idx}
@@ -373,7 +375,7 @@ def compute_trans_between_cur_to_next(left0_kpts, left0_dsc, right0_kpts,
    """
 
     # Find matches between left0 and left1
-    left0_left1_matches = utills.matching(left0_dsc, left1_dsc)
+    left0_left1_matches = utills.match(left0_dsc, left1_dsc)
 
     # Find key pts that match in all 4 KITTI
     rec0_dic = create_rec_dic(pair0_matches, pair0_rec_matches_idx)  # dict of {left kpt idx: pair rec frame_idx}
@@ -424,9 +426,9 @@ def whole_movie(first_left_ex_mat=M1):
     T_arr = [first_left_ex_mat]
 
     # Find matches in pair0 with rectified test
-    left0_kpts, left0_dsc, right0_kpts, pair0_matches, pair0_rec_matches_idx = utills.read_and_rec_match(0, kernel_size=10)
+    left0_kpts, left0_dsc, right0_kpts, pair0_matches, pair0_rec_matches_idx = utills.read_and_rec_match(0)
     for i in tqdm.tqdm(range(1, MOVIE_LEN)):
-        left1_kpts, left1_dsc, right1_kpts, pair1_matches, pair1_rec_matches_idx = utills.read_and_rec_match(i, kernel_size=10)
+        left1_kpts, left1_dsc, right1_kpts, pair1_matches, pair1_rec_matches_idx = utills.read_and_rec_match(i)
 
         left1_ex_mat = compute_trans_between_cur_to_next(left0_kpts, left0_dsc, right0_kpts,
                                                          pair0_matches, pair0_rec_matches_idx,
@@ -746,7 +748,7 @@ def plot_supporters_compare_to_ransac(left0, left1,
     """
     Plots the supporters in left0 and left1 with and without ransac
     """
-    fig = plt.figure(figsize=(10, 7))
+    fig = plt.figure(figsize=(14, 7))
     rows, cols = 2, 2
     fig.suptitle(f'Left 0 and left1 supporters with/out ransac')
 
@@ -780,6 +782,8 @@ def plot_supporters_compare_to_ransac(left0, left1,
     plt.scatter(left1_matches_coor[ransac_supporters_idx][:, 0],
                 left1_matches_coor[ransac_supporters_idx][:, 1], s=1, color=INLIER_COLOR)
 
+    plt.subplots_adjust(wspace=0.1, hspace=-0.1)
+
     fig.savefig("Results/Left0 Left1 supporters ransac compare.png")
     plt.close(fig)
 
@@ -796,20 +800,20 @@ def mission2_dot3():
           f"Right1: {relative_camera_pos(compose_transformations(M2 ,best_left1_cam_mat))}")
 
 
-def mission2_dot4():
+def compare_supporters_with_without_ransac():
     # 2.4
-    left0, right0 = utils.read_images(utils.IDX)
-    left1, right1 = utils.read_images(utils.IDX + 1)
+    left0, right0 = Data.KITTI.read_images(0)
+    left1, right1 = Data.KITTI.read_images(1)
     # Find matches in pair0 with rectified test
-    left0_kpts, left0_dsc, right0_kpts, _, pair0_matches = utils.detect_and_match(left0, right0)
-    pair0_rec_matches_idx, _ = utils.rectified_stereo_pattern_rej(left0_kpts, right0_kpts, pair0_matches)
+    left0_kpts, left0_dsc, right0_kpts, _, pair0_matches = utills.detect_and_match(left0, right0)
+    pair0_rec_matches_idx, _ = utills.rectified_stereo_pattern_rej(left0_kpts, right0_kpts, pair0_matches)
 
     # Find matches in pair 1 with rectified test
-    left1_kpts, left1_dsc, right1_kpts, right1_dsc, pair1_matches = utils.detect_and_match(left1, right1)
-    pair1_rec_matches_idx, _ = utils.rectified_stereo_pattern_rej(left1_kpts, right1_kpts, pair1_matches)
+    left1_kpts, left1_dsc, right1_kpts, right1_dsc, pair1_matches = utills.detect_and_match(left1, right1)
+    pair1_rec_matches_idx, _ = utills.rectified_stereo_pattern_rej(left1_kpts, right1_kpts, pair1_matches)
 
     # Find matches between left0 and left1
-    left0_left1_matches = utils.matching(left0_dsc, left1_dsc)
+    left0_left1_matches = utills.match(left0_dsc, left1_dsc)
 
     # Find key pts that match in all 4 KITTI
     rec0_dic = create_rec_dic(pair0_matches, pair0_rec_matches_idx)  # dict of {left kpt idx: pair rec frame_idx}
@@ -817,12 +821,12 @@ def mission2_dot4():
     q_pair0_idx, q_pair1_idx, q_left0_left1_idx = find_kpts_in_all_4_rec(left0_left1_matches, rec0_dic, rec1_dic)
 
     # Pair0 triangulation
-    left0_matches_coor, right0_matches_coor = utils.get_matches_coor(pair0_matches[q_pair0_idx], left0_kpts,
+    left0_matches_coor, right0_matches_coor = utills.get_matches_coor(pair0_matches[q_pair0_idx], left0_kpts,
                                                                      right0_kpts)
-    pair0_p3d_pts = utils.triangulate(K @ M1, K @ M2, left0_matches_coor, right0_matches_coor)
+    pair0_p3d_pts = utills.triangulate(K @ M1, K @ M2, left0_matches_coor, right0_matches_coor)
 
     # Compute left1 and right 1 matches d2_points in the image
-    left1_matches_coor, right1_matches_coor = utils.get_matches_coor(pair1_matches[q_pair1_idx], left1_kpts,
+    left1_matches_coor, right1_matches_coor = utills.get_matches_coor(pair1_matches[q_pair1_idx], left1_kpts,
                                                                      right1_kpts)
 
     pts_idx = [0, 1, 2, 3]
@@ -849,6 +853,6 @@ def mission2_dot4():
 
     plot_supporters(left0, left1, left0_matches_coor, left1_matches_coor,
                     supporters_idx)
-    plot_supporters_compare_to_ransac(left0, left1,
+    utils.plot.plot_supporters_compare_to_ransac(left0, left1,
                                       left0_matches_coor, left1_matches_coor,
                                       supporters_idx, max_supp_group_idx)

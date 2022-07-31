@@ -59,10 +59,13 @@ def mission2():
         cameras=[first_bundle.get_optimized_cameras_p3d()], landmarks=[first_bundle.get_optimized_landmarks_p3d()])
 
 
-def mission3(method):
+def mission3(method, load=False):
     # Solve BA
-    bundle_adjustment = BundleAdjustment()
-    bundle_adjustment.solve(method=method)
+    if not load:
+        bundle_adjustment = BundleAdjustment()
+        bundle_adjustment.solve(method=method)
+    else:
+        bundle_adjustment = Data.BA
     gtsam_cameras_rel_to_bundle = bundle_adjustment.get_gtsam_cameras_rel_to_bundle()
     all_landmarks_rel_to_bundle = bundle_adjustment.get_all_landmarks_rel_to_bundle()
     cameras, landmarks = BA.convert_rel_cams_and_landmarks_to_global(gtsam_cameras_rel_to_bundle,  all_landmarks_rel_to_bundle)

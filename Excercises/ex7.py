@@ -83,6 +83,8 @@ def plot_pose_graph_absolute_location_error_before_and_after_opt():
     plt.plot(range(len(absolute_x)), absolute_x, label="X's error")
     plt.plot(range(len(absolute_y)), absolute_y, label="Y's error")
     plt.plot(range(len(absolute_z)), absolute_z, label="Z's error")
+    plt.ylabel("Absolute Error(m)")
+    plt.xlabel("Frame")
     plt.legend()
 
     fig.savefig(f"Results/Pose graph absolute location error BEFORE opt.png")
@@ -94,6 +96,8 @@ def plot_pose_graph_absolute_location_error_before_and_after_opt():
     plt.plot(range(len(absolute_y_loop)), absolute_y_loop, label="Y's error")
     plt.plot(range(len(absolute_z_loop)), absolute_z_loop, label="Z's error")
     plt.ylim(0, 50)
+    plt.ylabel("Absolute Error(m)")
+    plt.xlabel("Frame")
     plt.legend()
 
     fig.savefig(f"Results/Pose graph absolute location error AFTER opt.png")
@@ -116,9 +120,59 @@ def plot_covariance_uncertainty():
     plt.plot(range(len(det_covs)), det_covs, label="Before")
     plt.plot(range(len(det_opt_covs)), det_opt_covs, label="After")
     plt.yscale('log')
+    plt.ylabel("Covariance Det")
+    plt.xlabel("Key frame")
     plt.legend()
 
     fig.savefig(f"Results/Uncertainty before and after Loop.png")
+    plt.close(fig)
+
+
+def plot_location_uncertainty():
+    new_pose_graph = PoseGraph.create_pose_graph()
+    new_pose_graph.optimize()
+
+    pose_graph = Data.PG
+    opt_covs = [pose_graph.marginals(optimized=True).marginalCovariance(symbol(PoseGraph.CAMERA_SYM, cam_ind))[3:, 3:] for cam_ind in range(pose_graph.get_num_poses())]
+    covs = [new_pose_graph.marginals(optimized=False).marginalCovariance(symbol(PoseGraph.CAMERA_SYM, cam_ind))[3:, 3:] for cam_ind in range(pose_graph.get_num_poses())]
+
+    det_opt_covs = [np.sqrt(np.linalg.det(opt_cov)) for opt_cov in opt_covs]
+    det_covs = [np.sqrt(np.linalg.det(cov)) for cov in covs]
+
+    fig = plt.figure()
+    plt.title(f"Location uncertainty size before and after Loop Closure")
+    plt.plot(range(len(det_covs)), det_covs, label="Before")
+    plt.plot(range(len(det_opt_covs)), det_opt_covs, label="After")
+    plt.yscale('log')
+    plt.ylabel("Covariance Det")
+    plt.xlabel("Key frame")
+    plt.legend()
+
+    fig.savefig(f"Results/Location uncertainty before and after Loop.png")
+    plt.close(fig)
+
+
+def plot_angles_uncertainty():
+    new_pose_graph = PoseGraph.create_pose_graph()
+    new_pose_graph.optimize()
+
+    pose_graph = Data.PG
+    opt_covs = [pose_graph.marginals(optimized=True).marginalCovariance(symbol(PoseGraph.CAMERA_SYM, cam_ind))[:3, :3] for cam_ind in range(pose_graph.get_num_poses())]
+    covs = [new_pose_graph.marginals(optimized=False).marginalCovariance(symbol(PoseGraph.CAMERA_SYM, cam_ind))[:3, :3] for cam_ind in range(pose_graph.get_num_poses())]
+
+    det_opt_covs = [np.sqrt(np.linalg.det(opt_cov)) for opt_cov in opt_covs]
+    det_covs = [np.sqrt(np.linalg.det(cov)) for cov in covs]
+
+    fig = plt.figure()
+    plt.title(f"Angles uncertainty size before and after Loop Closure")
+    plt.plot(range(len(det_covs)), det_covs, label="Before")
+    plt.plot(range(len(det_opt_covs)), det_opt_covs, label="After")
+    plt.yscale('log')
+    plt.ylabel("Covariance Det")
+    plt.xlabel("Key frame")
+    plt.legend()
+
+    fig.savefig(f"Results/Angles uncertainty before and after Loop.png")
     plt.close(fig)
 
 
