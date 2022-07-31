@@ -4,22 +4,25 @@ This file responsible on loading Kitti's data and the Data base
 
 from DataDirectory import KittiData
 
-LOAD_KITTI = True
-LOAD_DB = True
-LOAD_BA = True
-LOAD_PG = True
+LOAD_KITTI = 1
+LOAD_DB = 1
+LOAD_BA = 0
+LOAD_PG = 0
+
+KITTI_NAME = "KITTI"
+
 
 if LOAD_KITTI:
-    # Load or create Kitti's DataDirectory
-    print("Trying to load an existing object of Kitti's data")
+    # Load or create KITTI's DataDirectory
+    print("Trying to load an existing object of KITTI's data")
     try:
         KITTI = KittiData.load(KittiData.LOADED_KITTI_DATA)
-        print(f"\tKitti's data object exists and was loaded from the path: {KittiData.LOADED_KITTI_DATA}")
+        print(f"\tKITTI's data object exists and was loaded from the path: {KittiData.LOADED_KITTI_DATA}")
     except:
-        print("\tKitti's data did not created yed, Let's create it now:")
+        print("\tKITTI's data did not created yet, Let's create it now:")
         KITTI = KittiData.KittiData()
         KittiData.save(KittiData.LOADED_KITTI_DATA, KITTI)
-        print(f"\tKitti's data object created and saved at : {KittiData.LOADED_KITTI_DATA}")
+        print(f"\tKITTI's data object created and saved at : {KittiData.LOADED_KITTI_DATA}")
 
     print("")
 
@@ -49,8 +52,9 @@ if LOAD_BA:
         BA = BundleAdjustment.load(BundleAdjustment.LOADED_BA_PATH)
         print(f"\tBundle adjustment object exists and was loaded from the path: {BundleAdjustment.LOADED_BA_PATH}")
     except:
+        print("\tBundle adjustment object did not created yet, Let's create it now:")
         bundle_adjustment = BundleAdjustment.BundleAdjustment()
-        bundle_adjustment.solve(BundleAdjustment.ITERATIVE_METHOD)
+        bundle_adjustment.solve(BundleAdjustment.ITERATIVE_PROCESS)
         BA = bundle_adjustment
         BundleAdjustment.save(BundleAdjustment.LOADED_BA_PATH, BA)
         print(f"\tBundle adjustment object created and saved at : {BundleAdjustment.LOADED_BA_PATH}")
@@ -63,8 +67,10 @@ if LOAD_PG:
         PG = PoseGraph.load(PoseGraph.LOADED_POSE_GRAPH_PATH)
         print(f"\tPose graph object exists and was loaded from the path: {PoseGraph.LOADED_POSE_GRAPH_PATH}")
     except:
+        print("\tPose graph object did not created yed, Let's create it now:")
         PG = PoseGraph.create_pose_graph()
         PG.optimize()
+        PG.loop_closure()
         PoseGraph.save(PoseGraph.LOADED_POSE_GRAPH_PATH, PG)
         print(f"\tPose graph object created and saved at : {PoseGraph.LOADED_POSE_GRAPH_PATH}")
 

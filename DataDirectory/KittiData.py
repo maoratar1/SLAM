@@ -3,12 +3,12 @@ import numpy as np
 import cv2
 import tqdm
 
+KERNEL_SIZE = 9
 DATA_PATH = r'/Users/maoratar/opt/anaconda3/envs/Van_Ex1/VAN_ex/dataset/sequences/00/'
-LOADED_KITTI_DATA = r'DataDirectory/KITTI_DATA.pickle'
+LOADED_KITTI_DATA = fr'DataDirectory/+KITTI_DATA_Gauss_blurr9_no_crop.pickle'
 LEFT_CAM_TRANS_PATH = r'/Users/maoratar/opt/anaconda3/envs/Van_Ex1/VAN_ex/dataset/poses/00.txt'
 IDX = 000000
 MOVIE_LEN = 3450
-KERNEL_SIZE = 10
 
 
 def save(path, db):
@@ -69,18 +69,30 @@ class KittiData:
         """
         return self.__images[ind]
 
-    def read_images(self, frame_num, kernel_size=0):
+    def read_images(self, frame_num, kernel_size=0, crop_x=None, crop_y=None):
         """
         :param idx: Image's index in the Kitti dataset
         :return: left and right cameras photos
         """
         img_name = '{:06d}.png'.format(IDX + frame_num)
-        img1 = cv2.imread(DATA_PATH + 'image_0/' + img_name, 0)
-        img2 = cv2.imread(DATA_PATH + 'image_1/' + img_name, 0)
+        img1 = cv2.imread(DATA_PATH + 'image_0/' + img_name, 1)
+        img2 = cv2.imread(DATA_PATH + 'image_1/' + img_name, 1)
+        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+        img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
 
         if kernel_size != 0:
-            img1 = cv2.blur(img1, (kernel_size, kernel_size))
-            img2 = cv2.blur(img2, (kernel_size, kernel_size))
+            # img1 = cv2.blur(img1, (kernel_size, kernel_size))
+            # img2 = cv2.blur(img2, (kernel_size, kernel_size))
+            img1 = cv2.GaussianBlur(img1, (kernel_size, kernel_size), 0)
+            img2 = cv2.GaussianBlur(img2, (kernel_size, kernel_size), 0)
+
+        if crop_x is not None:
+            img1 = img1[:, crop_x[0]: crop_x[1]]
+            img2 = img2[:, crop_x[0]: crop_x[1]]
+
+        if crop_y is not None:
+            img1 = img1[crop_y[0]: crop_y[1], :]
+            img2 = img2[crop_y[0]: crop_y[1], :]
 
         return img1, img2
 
