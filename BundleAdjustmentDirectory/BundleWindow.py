@@ -121,14 +121,14 @@ class BundleWindow:
         measure_xl, measure_xr, measure_y = last_left_img_loc[0], last_right_img_loc[0], last_left_img_loc[1]
         gtsam_stereo_point2_for_triangulation = gtsam.StereoPoint2(measure_xl, measure_xr, measure_y)
 
-        if measure_xl < measure_xr or measure_xl - measure_xr < 2:  # Todo: check this option
-            return
+        # if measure_xr > measure_xl and measure_xl - measure_xr < 3:  # Todo: check this option
+        #     return
 
         # Triangulation from last frame
-        gtsam_p3d = gtsam_frame_to_triangulate_from.backproject(gtsam_stereo_point2_for_triangulation)
+        gtsam_p3d = gtsam_frame_to_triangulate_from.backproject(gtsam_stereo_point2_for_triangulation)  # Todo: maybe save it already
 
-        # if gtsam_p3d[2] <= 0 or gtsam_p3d[2] >= 300:  # Todo: check limits  55%: 5:46
-        #     return
+        if gtsam_p3d[2] <= 0 or gtsam_p3d[2] >= 300:  # Todo: check limits  55%: 5:46
+            return
 
         # Add landmark symbol to "values" dictionary
         p3d_sym = symbol(LAND_MARK_SYM, track.get_id())
