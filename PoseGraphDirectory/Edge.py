@@ -1,22 +1,32 @@
 import numpy as np
 
+DET = "Determinant"
+EQUAL = "EQUAL"
+WEIGHT_METHOD = DET
 
-def cov_weight(cov):
-    # Simple way to compute det for symetric matrix
-    return np.linalg.det(cov)
+
+def cov_weight(cov, weight_method=DET):
+    """
+    Return cov weighting
+    :param cov: Covariance between two cameras
+    """
+    if cov is None:
+        return 0
+
+    if weight_method is DET:
+        return np.sqrt(np.linalg.det(cov))
+
+    if weight_method is EQUAL:
+        return 1
 
 
 class Edge:
 
-    def __init__(self, source, target, weight=None, cov=None):
+    def __init__(self, source, target, cov=None):
         self.source = source
         self.target = target
         self.__cov = cov
-
-        if weight is None:
-            self.__weight = cov_weight(cov)
-        else:
-            self.__weight = weight
+        self.__weight = cov_weight(cov)
 
     def get_cov(self):
         return self.__cov
@@ -32,7 +42,3 @@ class Edge:
 
     def __hash__(self):
         return hash((self.source, self.target))
-
-    # def get_edge_id(self):
-    #     return self.__id
-

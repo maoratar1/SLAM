@@ -1,4 +1,7 @@
 from collections import defaultdict
+
+import numpy as np
+
 from PoseGraphDirectory import Edge
 from utils import MinHeap
 
@@ -10,7 +13,7 @@ BFS = "BFS"
 
 class VertexGraph:
 
-    def __init__(self, vertices_num, rel_covs=None, method=ADJ_LST, directed=True, graph=None):
+    def __init__(self, vertices_num, rel_covs=None, method=ADJ_LST, directed=True):
         # Todo: for now graph is for testing in Test.py
         """
         :param rel_covs: Relative covariances between consecutive cameras
@@ -43,16 +46,22 @@ class VertexGraph:
         if self.__method is ADJ_MAT:
 
             # Initialize the adjacency matrix and creates the graph
-            self.__graph = [[Edge.Edge(None, 0) for _ in range(self.__v_num)] for _ in range(self.__v_num)]
-            self.set_vertex_graph_adj_mat()
+            self.__graph = [[Edge.Edge(row, col, None) for row in range(self.__v_num)] for col in range(self.__v_num)]
+
+            if self.__rel_covs is not None:
+                self.set_vertex_graph_adj_mat()
 
         elif self.__method is ADJ_LST:
             self.__graph = defaultdict(list)
-            self.set_vertex_graph_adj_lst()
+
+            if self.__rel_covs is not None:
+                self.set_vertex_graph_adj_lst()
 
         elif self.__method is BFS:
-            self.__graph = [[] for i in range(self.__v_num)]
-            self.create_vertex_graph_bfs()
+            self.__graph = [[] for _ in range(self.__v_num)]
+
+            if self.__rel_covs is not None:
+                self.create_vertex_graph_bfs()
 
     def find_shortest_path(self, source, target):
         """
@@ -66,15 +75,27 @@ class VertexGraph:
         elif self.__method == BFS:
             return self.find_shortest_path_bfs(source, target)
 
-    def add_edge(self, source, target, weight, cov):
+    def estimate_rel_cov(self, path):
+        """
+        Compute the estimated relative covariance between to cameras in the path the connecting them
+        :param path: list of cameras indexes where the first index contains the first camera and the last index contains
+         the last camera in the path
+         :return estimated covariance
+        """
+        estimated_rel_cov = np.zeros((COV_DIM, COV_DIM))
+        for i in range(1, len(path)):  # don't include first rel_covs at the path
+            edge = self.get_edge_between_vertices(path[i - 1], path[i])
+            estimated_rel_cov += edge.get_cov()
+        return estimated_rel_cov
+
+    def add_edge(self, source, target, cov):
         """
         Adds a directed edge of the form (first_v, target) with weight and covariance of cov
-        :return:
         """
         if self.__method is ADJ_MAT:
-            self.add_edge_adj_mat(source, target, weight, cov)
+            self.add_edge_adj_mat(source, target, cov)
         elif self.__method is ADJ_LST:
-            self.add_edge_adj_lst(source, target, weight, cov)
+            self.add_edge_adj_lst(source, target, cov)
         elif self.__method is BFS:
             self.add_edge_bfs(source, target)
 
@@ -90,20 +111,22 @@ class VertexGraph:
             return self.__edges[(source, target)]
 
     # == Method 1: Adjacency matrix : O(V^2)
-    def add_edge_adj_mat(self, first_v, second_v, weight, cov):
-        edge = Edge.Edge(first_v, second_v, weight, cov)
+    def add_edge_adj_mat(self, first_v, second_v, cov):
+        edge = Edge.Edge(first_v, second_v, cov)
         self.__graph[first_v][second_v] = edge
 
         if not self.__directed:
-            edge = Edge.Edge(second_v, first_v, weight, cov)
+            edge = Edge.Edge(second_v, first_v, cov)
             self.__graph[second_v][first_v] = edge
 
     def set_vertex_graph_adj_mat(self):
         """
-        Set the vertex graph with the pose graph edges
-        """
+       Creates the vertex graph - convert the basic pose graph to the vertex graph.
+       The basic structure of the pose graph is as chain of cameras there for here we initialize
+       only edges of consecutive vertex i and 'i+1'
+       """
         for i in range(len(self.__rel_covs)):
-            self.add_edge_adj_mat(i, i + 1, 1, self.__rel_covs[i])
+            self.add_edge_adj_mat(i, i + 1, self.__rel_covs[i])
 
     def find_shortest_path_adjacency_mat(self, source, target):
         """
@@ -181,19 +204,21 @@ class VertexGraph:
         Set the vertex graph with the pose graph edges
         """
         for i in range(len(self.__rel_covs)):
-            self.add_edge_adj_lst(i, i + 1, 1, self.__rel_covs[i])
+            self.add_edge_adj_lst(i, i + 1, self.__rel_covs[i])
 
-    def add_edge_adj_lst(self, first_v, second_v, weight, cov):  # Todo: consider change the graph to include edges not numbers
-
-        edge = Edge.Edge(first_v, second_v, weight, cov)
+    def add_edge_adj_lst(self, first_v, second_v, cov):  # Todo: consider change the graph to include edges not numbers
+        """
+       Adds a directed edge of the form (first_v, target) with weight and covariance of cov
+       """
+        edge = Edge.Edge(first_v, second_v, cov)
         # self.__graph[first_v].insert(0, second_v)  # Todo: why to insert that way ?
         self.__graph[first_v].append(second_v)  # Todo: way to insert that way ?
         self.__edges[(first_v, second_v)] = edge
 
         if not self.__directed:
-            edge = Edge.Edge(second_v, first_v, weight, cov)
+            edge = Edge.Edge(second_v, first_v, cov)
             self.__edges[(second_v, first_v)] = edge
-            self.__graph[second_v].insert(0, first_v)
+            self.__graph[second_v].append(first_v)
 
     def find_shortest_path_adjacency_lst(self, source, target):
         """
@@ -206,21 +231,16 @@ class VertexGraph:
         parents = [-1] * self.__v_num
 
         # Initialize min heap with all vertices with infinity distance
-        for neighbor in range(self.__v_num):
-            min_heap.nodes_lst.append(min_heap.add_node(neighbor, dist[neighbor]))
-            min_heap.nodes_positions.append(neighbor)
+        for vertex in range(self.__v_num):
+           min_heap.add_node(vertex, dist[vertex])
 
-        # Initialize first_v distance to 0
-        min_heap.nodes_positions[source] = source
+        # Initialize source distance to 0 and update the min heap
         dist[source] = 0
-        min_heap.decreaseKey(source, dist[source])
-
-        # Initialize size of min heap to the vertex number
-        min_heap.size = self.__v_num
+        min_heap.update_vertex_val(source, dist[source])
 
         # Min heap contains all vertices that has minimum distance from the first_v had *not* been computed yet,
         # so we run this loop until we find the target minimum distance
-        while min_heap.isInMinHeap(target):
+        while min_heap.in_heap(target):
 
             # Extract vertex with minimum distance - this is the part that is efficient than the
             # adjacency matrix representation
@@ -237,14 +257,14 @@ class VertexGraph:
                 #                   pass through min_dist_vertex
                 source_neighbor_dist = self.__edges[(min_dist_vertex, neighbor)].get_weight()
 
-                if min_heap.isInMinHeap(neighbor) and dist[min_dist_vertex] != float('inf') and\
+                if min_heap.in_heap(neighbor) and dist[min_dist_vertex] != float('inf') and\
                         source_neighbor_dist + dist[min_dist_vertex] < dist[neighbor]:
 
                     dist[neighbor] = source_neighbor_dist + dist[min_dist_vertex]
                     parents[neighbor] = min_dist_vertex
 
                     # Update distance value in min heap also
-                    min_heap.decreaseKey(neighbor, dist[neighbor])
+                    min_heap.update_vertex_val(neighbor, dist[neighbor])
 
         # Compute path
         path = self.get_path(parents, target)
@@ -258,42 +278,4 @@ class VertexGraph:
         pass
 
     def find_shortest_path_bfs(self, source, target):
-        v = self.__v_num
-        # a queue to maintain queue of vertices whose adjacency list is to be scanned as per normal DFS algorithm
-        queue = []
-
-        # boolean array visited[] which stores the information whether ith vertex is reached
-        visited = [False for i in range(v)]
-
-        # initially all vertices are unvisited
-        # so v[i] for all i is false
-        # and as no path is yet constructed
-        # dist[i] for all i set to infinity
-        for i in range(v):
-            dist[i] = 1000000
-            pred[i] = -1;
-
-        # now first_v is first to be visited and
-        # distance from first_v to itself should be 0
-        visited[src] = True;
-        dist[src] = 0;
-        queue.append(src);
-
-        # standard BFS algorithm
-        while (len(queue) != 0):
-            u = queue[0];
-            queue.pop(0);
-            for i in range(len(self.__graph[u])):
-
-                if (visited[self.__graph[u][i]] == False):
-                    visited[self.__graph[u][i]] = True;
-                    dist[self.__graph[u][i]] = dist[u] + 1;
-                    pred[self.__graph[u][i]] = u;
-                    queue.append(self.__graph[u][i]);
-
-                    # We stop BFS when we find
-                    # destination.
-                    if (self.__graph[u][i] == dest):
-                        return True;
-
-        return False
+        pass
