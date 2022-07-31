@@ -5,9 +5,9 @@ class Feature:
     This class represents feature in frame
     """
 
-    def __init__(self, kpt_left, kpt_right, x_left, x_right, y_left, y_right):
-        self.__kpt_left = kpt_left
-        self.__kpt_right = kpt_right
+    def __init__(self, kpt_left_idx, kpt_right_idx, x_left, x_right, y_left, y_right):
+        self.__kpt_left = kpt_left_idx
+        self.__kpt_right = kpt_right_idx
         self.__x_left = x_left
         self.__x_right = x_right
         self.__y_left = y_left

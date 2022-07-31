@@ -5,8 +5,8 @@ from DataBaseDirectory import Trck as T
 from DataBaseDirectory import Frame as Fr
 import pandas as pd
 import pickle
-
-LOADED_DB_PATH = r'DataBaseDirectory/db_akaze_bf.pickle'
+DB_NAME = "db_akaze_bf_3"
+LOADED_DB_PATH = f'DataBaseDirectory/{DB_NAME}.pickle'
 TRACK_NAME = "TRACK"
 DB_TRACK_PATH = r'Results/Track frames_in_window.csv'
 DB_FRAME_PATH = r'Results/Frame tracks.csv'
@@ -77,6 +77,7 @@ class DataBase:
             self.set_tracks_and_frames(frame_i_features_obj, frame_i_following_features_obj, i, global_cam_trans)
 
         self.__frames = np.array(self.__frames)
+        self.__tracks = np.array(self.__tracks)
 
     def set_tracks_and_frames(self, first_frame_features_obj, second_frame_features_obj, first_frame_id, global_trans):
         """
@@ -229,7 +230,7 @@ class DataBase:
         """
         Returns the tracks list
         """
-        return np.array(self.__tracks)
+        return self.__tracks
 
     # def get_tracks_at_frame_with_pd(self, frames_ids):  #Todo: use it later when the pandas will be ready
     #     """
@@ -246,7 +247,7 @@ class DataBase:
         :return:
         """
         frame = self.__frames[frames_id]
-        return np.array(self.__tracks)[frame.get_tracks_ids()]
+        return self.__tracks[frame.get_tracks_ids()]
 
     def get_frames_at_track(self, track_id):
         """
@@ -312,6 +313,19 @@ class DataBase:
             loc.append(frame.get_pose())
 
         return np.array(loc)
+
+    def get_tracks_with_specific_len(self, track_len):
+        return self.__tracks[list(map(lambda track: track.get_track_len() == track_len, self.__tracks))]
+
+    def tracks_median_len(self, percentage):
+        tracks_lens = [0] * len(self.__tracks)
+
+        for i, track in enumerate(self.__tracks):
+            tracks_lens[i] = track.get_track_len()
+
+        tracks_lens.sort()
+        median_ind = int(percentage * len(tracks_lens))
+        return tracks_lens[median_ind]
 
 
 # === Another option for setting tracks - written for finding tracks in little bundle at ex7
